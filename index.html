@@ -267,11 +267,9 @@
     const connections = {};
     let isSharing = false;
 
-    // Leitura dos parâmetros da URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('room')) document.getElementById('input-room').value = urlParams.get('room');
 
-    // Sidebar Mobile Toggle
     const sidebarChannels = document.getElementById('sidebar-channels');
     document.getElementById('btn-open-sidebar').addEventListener('click', () => {
         sidebarChannels.classList.remove('-translate-x-full');
@@ -283,7 +281,6 @@
     });
     if (window.innerWidth < 768) sidebarChannels.classList.add('-translate-x-full');
 
-    // Chat Toggle
     const chatPanel = document.getElementById('chat-panel');
     let isChatOpen = false;
     function toggleChat() {
@@ -299,7 +296,6 @@
     document.getElementById('btn-toggle-chat').addEventListener('click', toggleChat);
     document.getElementById('btn-close-chat').addEventListener('click', toggleChat);
 
-    // Entrada na Sala
     document.getElementById('btn-join').addEventListener('click', async () => {
       const usernameInput = document.getElementById('input-username').value.trim();
       const roomInput = document.getElementById('input-room').value.trim();
@@ -343,17 +339,9 @@
       setupAudioVolumeDetection(localStream, 'local-video');
     });
 
-    // Inicialização da Conexão P2P com Servidor Público
     function initPeerConnection() {
-      const randomSuffix = Math.random().toString(36).substring(2, 7);
-      const encodedName = encodeURIComponent(myProfile.name);
-      const encodedAvatar = myProfile.avatar ? encodeURIComponent(myProfile.avatar) : 'none';
-      
-      // Monta ID identificável: sala__nome__avatar__hash
-      const myPeerId = `iagocord__${currentRoom}__${encodedName}__${encodedAvatar}__${randomSuffix}`;
-      
-      // Conecta ao servidor gratuito e público do PeerJS
-      peer = new Peer(myPeerId, {
+      // Deixa o servidor criar um ID seguro automaticamente
+      peer = new Peer({
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -363,7 +351,6 @@
       });
 
       peer.on('open', (id) => {
-        // Atualiza status para conectado
         const badge = document.getElementById('badge-status');
         badge.innerText = 'ONLINE';
         badge.className = 'ml-auto text-[9px] bg-[#23a55a] text-white px-2 py-0.5 rounded-full font-bold shadow-[0_0_5px_#23a55a]';
@@ -372,13 +359,12 @@
         document.getElementById('display-status-text').innerText = 'Conectado';
         document.getElementById('display-status-text').className = 'text-[11px] text-[#23a55a] font-medium truncate';
 
-        // Inicia anúncio via Broker MQTT público gratuito para a internet
         initMqttSignaling(id);
       });
 
       peer.on('call', (call) => {
         call.answer(localStream);
-        const remoteProfile = parsePeerId(call.peer);
+        const remoteProfile = call.metadata ? call.metadata.profile : { name: 'Amigo', avatar: null };
         
         call.on('stream', (remoteStream) => {
           if (!document.getElementById(`video-${call.peer}`)) {
@@ -393,16 +379,13 @@
       peer.on('connection', (conn) => setupDataConnection(conn));
     }
 
-    // Sinalização Gratuita em Nuvem (Conecta amigos de qualquer lugar do mundo)
     function initMqttSignaling(myId) {
       const roomTopic = `iagocord/rooms/${currentRoom}`;
-      // Broker MQTT público e gratuito (WebSocket seguro WSS)
       mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
 
       mqttClient.on('connect', () => {
         mqttClient.subscribe(roomTopic);
-        // Avisa a todos da sala que você entrou
-        mqttClient.publish(roomTopic, JSON.stringify({ type: 'join', peerId: myId }));
+        mqttClient.publish(roomTopic, JSON.stringify({ type: 'join', peerId: myId, profile: myProfile }));
       });
 
       mqttClient.on('message', (topic, message) => {
@@ -410,35 +393,20 @@
           const data = JSON.parse(message.toString());
           if (data.peerId !== myId) {
             if (data.type === 'join') {
-              // Se alguém novo entrou, conecta nele
-              connectToPeer(data.peerId);
-              // Responde para que ele saiba que você já estava na sala
-              mqttClient.publish(roomTopic, JSON.stringify({ type: 'present', peerId: myId }));
+              connectToPeer(data.peerId, data.profile);
+              mqttClient.publish(roomTopic, JSON.stringify({ type: 'present', peerId: myId, profile: myProfile }));
             } else if (data.type === 'present' && !calls[data.peerId]) {
-              connectToPeer(data.peerId);
+              connectToPeer(data.peerId, data.profile);
             }
           }
         } catch (e) {}
       });
     }
 
-    function parsePeerId(peerId) {
-      try {
-        const parts = peerId.split('__');
-        return {
-          name: decodeURIComponent(parts[2] || 'Amigo'),
-          avatar: parts[3] !== 'none' ? decodeURIComponent(parts[3]) : null
-        };
-      } catch (e) {
-        return { name: 'Amigo', avatar: null };
-      }
-    }
-
-    function connectToPeer(remotePeerId) {
+    function connectToPeer(remotePeerId, remoteProfile) {
       if (calls[remotePeerId]) return;
-      const remoteProfile = parsePeerId(remotePeerId);
       
-      const call = peer.call(remotePeerId, localStream);
+      const call = peer.call(remotePeerId, localStream, { metadata: { profile: myProfile } });
       call.on('stream', (remoteStream) => {
          if (!document.getElementById(`video-${remotePeerId}`)) {
              addVideoStream(remotePeerId, remoteStream, remoteProfile, false);
@@ -460,7 +428,6 @@
         conn.on('close', () => delete connections[conn.peer]);
     }
 
-    // Renderização dos Cards de Vídeo
     function addVideoStream(id, stream, profile, isLocal) {
       let card = document.getElementById(`container-${id}`);
       if (!card) {
@@ -479,7 +446,6 @@
         const overlay = document.createElement('div');
         overlay.className = "absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90";
         
-        // Tag com nome e avatar
         const tag = document.createElement('div');
         tag.className = "absolute bottom-3 left-3 bg-black/60 backdrop-blur-md pr-4 pl-1.5 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-2.5 pointer-events-auto border border-white/10";
         
@@ -489,11 +455,9 @@
         
         tag.innerHTML = `${avatarHtml}<span class="truncate max-w-[120px] drop-shadow-md">${profile.name} ${isLocal ? '(Você)' : ''}</span>`;
 
-        // Barra de Ações Superior (Fixar Tela & Volume Individual)
         const topActions = document.createElement('div');
         topActions.className = "absolute top-3 right-3 flex items-center gap-2 pointer-events-auto opacity-0 group-hover:opacity-100 transition-all";
 
-        // Botão Fixar / Expandir Tela
         const btnPin = document.createElement('button');
         btnPin.className = "p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10";
         btnPin.title = "Fixar / Destacar";
@@ -503,9 +467,7 @@
         };
         topActions.appendChild(btnPin);
 
-        // Controles específicos para participantes remotos
         if (!isLocal) {
-            // Slider de volume individual
             const volumeContainer = document.createElement('div');
             volumeContainer.className = "flex items-center gap-1.5 bg-black/60 px-2 py-1.5 rounded-xl border border-white/10 backdrop-blur-md";
             volumeContainer.innerHTML = `
@@ -518,7 +480,6 @@
             };
             topActions.appendChild(volumeContainer);
 
-            // Botão Mudo Individual
             const btnMuteRemote = document.createElement('button');
             btnMuteRemote.className = "p-2 bg-black/50 hover:bg-[#da373a] rounded-xl text-white transition-all backdrop-blur-md border border-white/10";
             btnMuteRemote.title = "Mutar participante";
@@ -551,7 +512,6 @@
       if (connections[id]) delete connections[id];
     }
 
-    // Detecção visual de quem está falando
     function setupAudioVolumeDetection(stream, id) {
         try {
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -580,7 +540,6 @@
         } catch (e) {}
     }
 
-    // Controles de Mídia
     let isMuted = false;
     document.getElementById('ctrl-mic').addEventListener('click', () => {
       if (!localStream) return;
@@ -619,7 +578,6 @@
       lucide.createIcons();
     });
 
-    // Compartilhamento de Tela & Modo Gamer
     async function startScreenShare(gamerMode) {
       if (isSharing) return stopScreenShare();
       try {
@@ -695,7 +653,6 @@
     document.getElementById('ctrl-screen').addEventListener('click', () => startScreenShare(false));
     document.getElementById('ctrl-gamer').addEventListener('click', () => startScreenShare(true));
 
-    // Chat
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
@@ -741,7 +698,6 @@
         }
     }
 
-    // Copiar Link da Sala
     document.getElementById('btn-copy-link').addEventListener('click', () => {
       navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${currentRoom || 'geral'}`);
       const span = document.querySelector('#btn-copy-link span');
@@ -753,13 +709,14 @@
       setTimeout(() => { span.innerText = originalText; icon.setAttribute('data-lucide', 'user-plus'); lucide.createIcons(); }, 2000);
     });
 
-    // Desconectar
     document.getElementById('ctrl-leave').addEventListener('click', () => {
       if (confirm('Deseja realmente sair da call?')) {
         if (localStream) localStream.getTracks().forEach(t => t.stop());
         if (screenStream) screenStream.getTracks().forEach(t => t.stop());
         if (mqttClient) mqttClient.end();
         location.reload();
+      }
+    });
       }
     });
   </script>
