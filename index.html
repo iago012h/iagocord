@@ -246,91 +246,290 @@
   <script>
     lucide.createIcons();
 
+    // =========================
+    // Estado da aplicação
+    // =========================
     let localStream = null;
-    let activeStream = null; // Rastreia o que está sendo transmitido (câmera ou tela)
+    let activeStream = null;
     let screenStream = null;
     let peer = null;
     let mqttClient = null;
     let currentRoom = null;
+    let myPeerId = null;
     let myProfile = { name: 'Usuário', avatar: null };
     const calls = {};
     let isSharing = false;
+    let isMuted = false;
+    let isVideoOff = false;
+    let mqttConnected = false;
 
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('room')) document.getElementById('input-room').value = urlParams.get('room');
+    if (urlParams.get('room')) {
+      document.getElementById('input-room').value = urlParams.get('room');
+    }
 
+    // =========================
+    // Sidebar / Chat
+    // =========================
     const sidebarChannels = document.getElementById('sidebar-channels');
+
     document.getElementById('btn-open-sidebar').addEventListener('click', () => {
-        sidebarChannels.classList.remove('-translate-x-full');
-        sidebarChannels.classList.add('translate-x-0', 'absolute');
+      sidebarChannels.classList.remove('-translate-x-full');
+      sidebarChannels.classList.add('translate-x-0', 'absolute');
     });
+
     document.getElementById('btn-close-sidebar').addEventListener('click', () => {
-        sidebarChannels.classList.add('-translate-x-full');
-        sidebarChannels.classList.remove('translate-x-0');
+      sidebarChannels.classList.add('-translate-x-full');
+      sidebarChannels.classList.remove('translate-x-0');
     });
-    if (window.innerWidth < 768) sidebarChannels.classList.add('-translate-x-full');
+
+    if (window.innerWidth < 768) {
+      sidebarChannels.classList.add('-translate-x-full');
+    }
 
     const chatPanel = document.getElementById('chat-panel');
     let isChatOpen = false;
+
     function toggleChat() {
-        isChatOpen = !isChatOpen;
-        if (isChatOpen) {
-            chatPanel.classList.remove('hidden');
-            setTimeout(() => chatPanel.classList.remove('translate-x-full'), 10);
-        } else {
-            chatPanel.classList.add('translate-x-full');
-            setTimeout(() => chatPanel.classList.add('hidden'), 300);
-        }
+      isChatOpen = !isChatOpen;
+
+      if (isChatOpen) {
+        chatPanel.classList.remove('hidden');
+        setTimeout(() => chatPanel.classList.remove('translate-x-full'), 10);
+      } else {
+        chatPanel.classList.add('translate-x-full');
+        setTimeout(() => chatPanel.classList.add('hidden'), 300);
+      }
     }
+
     document.getElementById('btn-toggle-chat').addEventListener('click', toggleChat);
     document.getElementById('btn-close-chat').addEventListener('click', toggleChat);
 
+    // =========================
+    // Utilidades
+    // =========================
+    function setStatus(text, color = 'yellow') {
+      const badge = document.getElementById('badge-status');
+      const dot = document.getElementById('status-indicator-dot');
+      const statusText = document.getElementById('display-status-text');
+
+      const colors = {
+        yellow: '#eab308',
+        green: '#23a55a',
+        red: '#da373a'
+      };
+
+      badge.innerText = text;
+      badge.style.backgroundColor = colors[color] || colors.yellow;
+      badge.style.color = color === 'yellow' ? '#000' : '#fff';
+
+      dot.style.backgroundColor = colors[color] || colors.yellow;
+      statusText.innerText = text === 'ONLINE' ? 'Conectado' : text;
+      statusText.style.color = colors[color] || colors.yellow;
+    }
+
+    function showError(message) {
+      console.error(message);
+      alert(message);
+    }
+
+    function isSecureEnoughForMedia() {
+      return window.isSecureContext ||
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
+    }
+
+    function getCurrentAudioTrack() {
+      return localStream?.getAudioTracks()?.[0] || null;
+    }
+
+    function getCurrentVideoTrack() {
+      return localStream?.getVideoTracks()?.[0] || null;
+    }
+
+    // =========================
+    // Entrada na sala
+    // =========================
     document.getElementById('btn-join').addEventListener('click', async () => {
       const usernameInput = document.getElementById('input-username').value.trim();
       const roomInput = document.getElementById('input-room').value.trim();
       const avatarInput = document.getElementById('input-avatar').value.trim();
 
-      if (!usernameInput || !roomInput) return alert('Preencha seu nome e a sala!');
+      if (!usernameInput || !roomInput) {
+        alert('Preencha seu nome e a sala!');
+        return;
+      }
+
+      if (!isSecureEnoughForMedia()) {
+        alert(
+          'O navegador bloqueou câmera/microfone por segurança.\n\n' +
+          'Abra este site usando HTTPS ou rode em localhost.'
+        );
+        return;
+      }
 
       myProfile.name = usernameInput;
       myProfile.avatar = avatarInput !== "" ? avatarInput : null;
-      currentRoom = roomInput.toLowerCase().replace(/[^a-z0-9_-]/g, '');
-      
-      document.getElementById('display-username').innerText = myProfile.name;
-      if (myProfile.avatar) {
-          document.getElementById('avatar-img-preview').src = myProfile.avatar;
-          document.getElementById('avatar-img-preview').classList.remove('hidden');
-          document.getElementById('avatar-initial-container').classList.add('hidden');
-      } else {
-          document.getElementById('avatar-initial').innerText = myProfile.name.charAt(0).toUpperCase();
+
+      currentRoom = roomInput
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]/g, '');
+
+      if (!currentRoom) {
+        alert('Escolha um nome de sala válido.');
+        return;
       }
-      
+
+      document.getElementById('display-username').innerText = myProfile.name;
       document.getElementById('room-title').innerText = `Canal: #${currentRoom}`;
       document.getElementById('channel-name-display').innerText = `#${currentRoom}`;
 
-      try {
-        localStream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: "user" }, 
-            audio: { echoCancellation: true, noiseSuppression: true } 
-        });
-      } catch (err) {
-        try {
-          localStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-        } catch (e) {
-          alert('Não foi possível acessar seu microfone/câmera.');
-          return;
-        }
+      if (myProfile.avatar) {
+        document.getElementById('avatar-img-preview').src = myProfile.avatar;
+        document.getElementById('avatar-img-preview').classList.remove('hidden');
+        document.getElementById('avatar-initial-container').classList.add('hidden');
+      } else {
+        document.getElementById('avatar-img-preview').classList.add('hidden');
+        document.getElementById('avatar-initial-container').classList.remove('hidden');
+        document.getElementById('avatar-initial').innerText =
+          myProfile.name.charAt(0).toUpperCase();
       }
 
-      activeStream = localStream; // Inicia transmitindo a câmera padrão
-      addVideoStream('local-video', localStream, myProfile, true);
-      document.getElementById('join-modal').classList.add('hidden');
-      initPeerConnection();
-      setupAudioVolumeDetection(localStream, 'local-video');
+      try {
+        await requestCameraAndMicrophone();
+
+        activeStream = localStream;
+        addVideoStream('local-video', localStream, myProfile, true);
+        setupAudioVolumeDetection(localStream, 'local-video');
+
+        document.getElementById('join-modal').classList.add('hidden');
+
+        initPeerConnection();
+      } catch (err) {
+        console.error('Erro ao entrar:', err);
+
+        alert(
+          'Não foi possível acessar câmera/microfone.\n\n' +
+          'Verifique as permissões do navegador e tente novamente.'
+        );
+      }
     });
 
+    // =========================
+    // Câmera + microfone
+    // =========================
+    async function requestCameraAndMicrophone() {
+      try {
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+
+        isVideoOff = false;
+        isMuted = false;
+        updateMicButton();
+        updateCameraButton();
+
+      } catch (cameraError) {
+        console.warn('Câmera + microfone falharam:', cameraError);
+
+        // Tenta somente microfone como fallback.
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: false,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          }
+        });
+
+        isVideoOff = true;
+        updateMicButton();
+        updateCameraButton();
+
+        console.warn('Entrando somente com microfone.');
+      }
+    }
+
+    async function enableCamera() {
+      if (!localStream) return;
+
+      const existingVideo = getCurrentVideoTrack();
+
+      if (existingVideo) {
+        existingVideo.enabled = true;
+        isVideoOff = false;
+        updateCameraButton();
+        return;
+      }
+
+      try {
+        const cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            facingMode: 'user'
+          },
+          audio: false
+        });
+
+        const newVideoTrack = cameraStream.getVideoTracks()[0];
+        if (!newVideoTrack) throw new Error('Nenhuma câmera encontrada.');
+
+        localStream.addTrack(newVideoTrack);
+
+        if (!isSharing) {
+          activeStream = localStream;
+
+          const localVideo = document.getElementById('video-local-video');
+          if (localVideo) {
+            localVideo.srcObject = localStream;
+            localVideo.classList.add('transform', 'scale-x-[-1]');
+          }
+
+          await replaceOutgoingTrack('video', newVideoTrack);
+        }
+
+        isVideoOff = false;
+        updateCameraButton();
+
+      } catch (err) {
+        console.error('Erro ao ligar câmera:', err);
+        alert(
+          'Não foi possível ligar a câmera.\n\n' +
+          'Confira se o navegador tem permissão para usá-la.'
+        );
+      }
+    }
+
+    async function disableCamera() {
+      if (!localStream) return;
+
+      const track = getCurrentVideoTrack();
+
+      if (track) {
+        track.enabled = false;
+        isVideoOff = true;
+        updateCameraButton();
+      }
+    }
+
+    // =========================
+    // PeerJS / WebRTC
+    // =========================
     function initPeerConnection() {
+      setStatus('CONECTANDO', 'yellow');
+
       peer = new Peer({
+        debug: 1,
         config: {
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
@@ -340,213 +539,437 @@
       });
 
       peer.on('open', (id) => {
-        const badge = document.getElementById('badge-status');
-        badge.innerText = 'ONLINE';
-        badge.className = 'ml-auto text-[9px] bg-[#23a55a] text-white px-2 py-0.5 rounded-full font-bold shadow-[0_0_5px_#23a55a]';
-        
-        document.getElementById('status-indicator-dot').className = 'w-3.5 h-3.5 bg-[#23a55a] rounded-full border-2 border-[#111214] absolute -bottom-0.5 -right-0.5 shadow-[0_0_5px_#23a55a]';
-        document.getElementById('display-status-text').innerText = 'Conectado';
-        document.getElementById('display-status-text').className = 'text-[11px] text-[#23a55a] font-medium truncate';
-
+        myPeerId = id;
+        setStatus('ONLINE', 'green');
         initMqttSignaling(id);
       });
 
       peer.on('call', (call) => {
-        // Previne duplicação de chamadas
-        if (calls[call.peer]) return; 
+        if (calls[call.peer]) {
+          console.log('Chamada duplicada ignorada:', call.peer);
+          return;
+        }
 
-        // Envia o que o usuário está compartilhando (câmera ou tela)
-        call.answer(activeStream);
-        const remoteProfile = call.metadata ? call.metadata.profile : { name: 'Amigo', avatar: null };
-        
-        call.on('stream', (remoteStream) => {
-          if (!document.getElementById(`video-${call.peer}`)) {
-              addVideoStream(call.peer, remoteStream, remoteProfile, false);
-              setupAudioVolumeDetection(remoteStream, call.peer);
-          }
-        });
-        
-        call.on('close', () => removeVideoStream(call.peer));
-        call.on('error', () => removeVideoStream(call.peer));
+        const incomingProfile =
+          call.metadata?.profile || { name: 'Amigo', avatar: null };
+
         calls[call.peer] = call;
+
+        call.answer(activeStream || localStream);
+
+        call.on('stream', (remoteStream) => {
+          addOrUpdateRemoteStream(
+            call.peer,
+            remoteStream,
+            incomingProfile
+          );
+        });
+
+        call.on('close', () => {
+          removeVideoStream(call.peer);
+        });
+
+        call.on('error', (err) => {
+          console.error('Erro na chamada recebida:', err);
+          removeVideoStream(call.peer);
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error('PeerJS error:', err);
+        setStatus('ERRO P2P', 'red');
+
+        if (err.type === 'peer-unavailable') {
+          console.warn('Usuário não encontrado.');
+        } else if (err.type === 'network') {
+          console.warn('Problema de rede com PeerJS.');
+        }
+      });
+
+      peer.on('disconnected', () => {
+        console.warn('PeerJS desconectado.');
+        setStatus('RECONHECTANDO', 'yellow');
+
+        try {
+          peer.reconnect();
+        } catch (e) {
+          console.error(e);
+        }
+      });
+
+      peer.on('close', () => {
+        setStatus('OFFLINE', 'red');
       });
     }
 
-    // Sinalização e Chat unificados no MQTT (Resolve o bug do Chat)
+    function connectToPeer(remotePeerId, remoteProfile) {
+      if (!peer || !activeStream) return;
+      if (remotePeerId === myPeerId) return;
+      if (calls[remotePeerId]) return;
+
+      console.log('Conectando a:', remotePeerId);
+
+      const call = peer.call(
+        remotePeerId,
+        activeStream,
+        {
+          metadata: {
+            profile: myProfile
+          }
+        }
+      );
+
+      if (!call) {
+        console.error('PeerJS não conseguiu criar a chamada.');
+        return;
+      }
+
+      calls[remotePeerId] = call;
+
+      call.on('stream', (remoteStream) => {
+        addOrUpdateRemoteStream(
+          remotePeerId,
+          remoteStream,
+          remoteProfile
+        );
+      });
+
+      call.on('close', () => {
+        removeVideoStream(remotePeerId);
+      });
+
+      call.on('error', (err) => {
+        console.error('Erro na chamada:', err);
+        removeVideoStream(remotePeerId);
+      });
+    }
+
+    // =========================
+    // MQTT: presença + chat
+    // =========================
     function initMqttSignaling(myId) {
       const roomTopic = `iagocord/rooms/${currentRoom}`;
-      mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt');
+
+      try {
+        mqttClient = mqtt.connect(
+          'wss://broker.emqx.io:8084/mqtt',
+          {
+            clientId:
+              'iagocord_' +
+              Math.random().toString(16).slice(2) +
+              '_' +
+              Date.now(),
+            clean: true,
+            reconnectPeriod: 3000,
+            connectTimeout: 10000,
+            keepalive: 30
+          }
+        );
+      } catch (err) {
+        console.error('Falha ao criar MQTT:', err);
+        setStatus('ERRO CHAT', 'red');
+        return;
+      }
 
       mqttClient.on('connect', () => {
-        mqttClient.subscribe(roomTopic);
-        // Avisa que você entrou na sala
-        mqttClient.publish(roomTopic, JSON.stringify({ type: 'join', peerId: myId, profile: myProfile }));
+        mqttConnected = true;
+
+        console.log('MQTT conectado.');
+
+        setStatus('ONLINE', 'green');
+
+        mqttClient.subscribe(roomTopic, { qos: 0 }, (err) => {
+          if (err) {
+            console.error('Erro ao assinar sala:', err);
+            setStatus('ERRO CHAT', 'red');
+            return;
+          }
+
+          console.log('Inscrito em:', roomTopic);
+
+          mqttClient.publish(
+            roomTopic,
+            JSON.stringify({
+              type: 'join',
+              peerId: myId,
+              profile: myProfile
+            })
+          );
+        });
+      });
+
+      mqttClient.on('reconnect', () => {
+        mqttConnected = false;
+        console.log('Reconectando MQTT...');
+        setStatus('RECONNECT CHAT', 'yellow');
+      });
+
+      mqttClient.on('offline', () => {
+        mqttConnected = false;
+        console.warn('MQTT offline.');
+        setStatus('CHAT OFFLINE', 'red');
+      });
+
+      mqttClient.on('error', (err) => {
+        mqttConnected = false;
+        console.error('MQTT error:', err);
       });
 
       mqttClient.on('message', (topic, message) => {
         try {
           const data = JSON.parse(message.toString());
-          if (data.peerId === myId) return; // Ignora mensagens enviadas por mim mesmo
+
+          if (data.peerId === myId) return;
 
           if (data.type === 'join') {
-            // Se alguém novo entrou, EU ligo pra ele. (Resolve o bug de dupla chamada)
             connectToPeer(data.peerId, data.profile);
-          } 
+          }
+
           else if (data.type === 'leave') {
-            // Se alguém saiu, remova a tela dele (Resolve o bug dos fantasmas)
             removeVideoStream(data.peerId);
-          } 
+          }
+
           else if (data.type === 'chat') {
-            // Renderiza mensagem do chat via MQTT (Resolve chat inativo)
-            appendChatMessage(data.profile, data.message, false);
+            appendChatMessage(
+              data.profile || { name: 'Usuário', avatar: null },
+              data.message || '',
+              false
+            );
+          }
+
+        } catch (err) {
+          console.error('Erro processando MQTT:', err);
+        }
+      });
+
+      window.addEventListener('beforeunload', () => {
+        try {
+          if (mqttClient && mqttConnected) {
+            mqttClient.publish(
+              roomTopic,
+              JSON.stringify({
+                type: 'leave',
+                peerId: myId
+              })
+            );
           }
         } catch (e) {}
       });
-
-      // Evento crítico para sumir o vídeo imediatamente quando a pessoa fechar a aba
-      window.addEventListener('beforeunload', () => {
-        if (mqttClient) {
-          mqttClient.publish(roomTopic, JSON.stringify({ type: 'leave', peerId: myId }));
-        }
-      });
     }
 
-    function connectToPeer(remotePeerId, remoteProfile) {
-      if (calls[remotePeerId]) return;
-      
-      const call = peer.call(remotePeerId, activeStream, { metadata: { profile: myProfile } });
-      call.on('stream', (remoteStream) => {
-         if (!document.getElementById(`video-${remotePeerId}`)) {
-             addVideoStream(remotePeerId, remoteStream, remoteProfile, false);
-             setupAudioVolumeDetection(remoteStream, remotePeerId);
-         }
-      });
-      call.on('close', () => removeVideoStream(remotePeerId));
-      call.on('error', () => removeVideoStream(remotePeerId));
-      calls[remotePeerId] = call;
+    // =========================
+    // Vídeos
+    // =========================
+    function addOrUpdateRemoteStream(id, stream, profile) {
+      addVideoStream(id, stream, profile, false);
+      setupAudioVolumeDetection(stream, id);
     }
 
     function addVideoStream(id, stream, profile, isLocal) {
       let card = document.getElementById(`container-${id}`);
+
       if (!card) {
         card = document.createElement('div');
         card.id = `container-${id}`;
-        card.className = "video-card relative rounded-2xl overflow-hidden flex items-center justify-center border border-[#35373c] min-h-[180px] group";
+        card.className =
+          'video-card relative rounded-2xl overflow-hidden flex items-center justify-center border border-[#35373c] min-h-[180px] group';
 
         const video = document.createElement('video');
         video.id = `video-${id}`;
         video.autoplay = true;
         video.playsInline = true;
-        if (isLocal) video.muted = true;
+        video.controls = false;
+
+        if (isLocal) {
+          video.muted = true;
+        }
+
         video.srcObject = stream;
-        video.className = `w-full h-full object-cover ${(isLocal && !isSharing) ? 'transform scale-x-[-1]' : ''}`;
+        video.className =
+          `w-full h-full object-cover ${
+            isLocal && !isSharing
+              ? 'transform scale-x-[-1]'
+              : ''
+          }`;
+
+        video.onloadedmetadata = () => {
+          video.play().catch(() => {});
+        };
 
         const overlay = document.createElement('div');
-        overlay.className = "absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90";
-        
+        overlay.className =
+          'absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90';
+
         const tag = document.createElement('div');
-        tag.className = "absolute bottom-3 left-3 bg-black/60 backdrop-blur-md pr-4 pl-1.5 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-2.5 pointer-events-auto border border-white/10";
-        
-        let avatarHtml = profile.avatar 
-            ? `<img src="${profile.avatar}" class="w-7 h-7 rounded-full object-cover border-2 border-[#5865f2]" />`
-            : `<div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-[11px] shadow-inner">${profile.name.charAt(0).toUpperCase()}</div>`;
-        
-        tag.innerHTML = `${avatarHtml}<span class="truncate max-w-[120px] drop-shadow-md">${profile.name} ${isLocal ? '(Você)' : ''}</span>`;
+        tag.className =
+          'absolute bottom-3 left-3 bg-black/60 backdrop-blur-md pr-4 pl-1.5 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-2.5 pointer-events-auto border border-white/10';
+
+        const safeName = escapeHtml(profile?.name || 'Amigo');
+        const avatarHtml = profile?.avatar
+          ? `<img src="${escapeAttribute(profile.avatar)}" class="w-7 h-7 rounded-full object-cover border-2 border-[#5865f2]" />`
+          : `<div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-[11px] shadow-inner">${safeName.charAt(0).toUpperCase()}</div>`;
+
+        tag.innerHTML =
+          `${avatarHtml}<span class="truncate max-w-[120px] drop-shadow-md">${safeName} ${isLocal ? '(Você)' : ''}</span>`;
 
         const topActions = document.createElement('div');
-        topActions.className = "absolute top-3 right-3 flex items-center gap-2 pointer-events-auto opacity-0 group-hover:opacity-100 transition-all";
+        topActions.className =
+          'absolute top-3 right-3 flex items-center gap-2 pointer-events-auto opacity-0 group-hover:opacity-100 transition-all';
 
         const btnPin = document.createElement('button');
-        btnPin.className = "p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10";
-        btnPin.title = "Fixar / Destacar";
-        btnPin.innerHTML = `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
+        btnPin.className =
+          'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
+        btnPin.title = 'Fixar / Destacar';
+        btnPin.innerHTML =
+          `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
         btnPin.onclick = () => {
           card.classList.toggle('video-pinned');
         };
+
         topActions.appendChild(btnPin);
 
         if (!isLocal) {
-            const volumeContainer = document.createElement('div');
-            volumeContainer.className = "flex items-center gap-1.5 bg-black/60 px-2 py-1.5 rounded-xl border border-white/10 backdrop-blur-md";
-            volumeContainer.innerHTML = `
-              <i data-lucide="volume-2" class="w-3.5 h-3.5 text-gray-300"></i>
-              <input type="range" min="0" max="1" step="0.05" value="1" class="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5865f2]" />
-            `;
-            const rangeInput = volumeContainer.querySelector('input');
-            rangeInput.oninput = (e) => {
-              video.volume = parseFloat(e.target.value);
-            };
-            topActions.appendChild(volumeContainer);
+          const volumeContainer = document.createElement('div');
+          volumeContainer.className =
+            'flex items-center gap-1.5 bg-black/60 px-2 py-1.5 rounded-xl border border-white/10 backdrop-blur-md';
 
-            const btnMuteRemote = document.createElement('button');
-            btnMuteRemote.className = "p-2 bg-black/50 hover:bg-[#da373a] rounded-xl text-white transition-all backdrop-blur-md border border-white/10";
-            btnMuteRemote.title = "Mutar participante";
-            btnMuteRemote.innerHTML = `<i data-lucide="volume-x" class="w-4 h-4"></i>`;
-            let isUserMutedLocally = false;
-            btnMuteRemote.onclick = () => {
-                isUserMutedLocally = !isUserMutedLocally;
-                video.muted = isUserMutedLocally;
-                btnMuteRemote.classList.toggle('bg-[#da373a]', isUserMutedLocally);
-                btnMuteRemote.classList.toggle('bg-black/50', !isUserMutedLocally);
-            };
-            topActions.appendChild(btnMuteRemote);
+          volumeContainer.innerHTML = `
+            <i data-lucide="volume-2" class="w-3.5 h-3.5 text-gray-300"></i>
+            <input type="range" min="0" max="1" step="0.05" value="1"
+              class="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5865f2]" />
+          `;
+
+          const rangeInput = volumeContainer.querySelector('input');
+          rangeInput.oninput = (e) => {
+            video.volume = parseFloat(e.target.value);
+          };
+
+          topActions.appendChild(volumeContainer);
+
+          const btnMuteRemote = document.createElement('button');
+          btnMuteRemote.className =
+            'p-2 bg-black/50 hover:bg-[#da373a] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
+          btnMuteRemote.title = 'Mutar participante';
+          btnMuteRemote.innerHTML =
+            `<i data-lucide="volume-x" class="w-4 h-4"></i>`;
+
+          let isUserMutedLocally = false;
+
+          btnMuteRemote.onclick = () => {
+            isUserMutedLocally = !isUserMutedLocally;
+            video.muted = isUserMutedLocally;
+
+            btnMuteRemote.classList.toggle(
+              'bg-[#da373a]',
+              isUserMutedLocally
+            );
+
+            btnMuteRemote.classList.toggle(
+              'bg-black/50',
+              !isUserMutedLocally
+            );
+          };
+
+          topActions.appendChild(btnMuteRemote);
         }
 
         overlay.appendChild(topActions);
         overlay.appendChild(tag);
         card.appendChild(video);
         card.appendChild(overlay);
+
         document.getElementById('videos-grid').appendChild(card);
         lucide.createIcons();
+
       } else {
-        document.getElementById(`video-${id}`).srcObject = stream;
+        const video = document.getElementById(`video-${id}`);
+        if (video && video.srcObject !== stream) {
+          video.srcObject = stream;
+          video.play().catch(() => {});
+        }
       }
     }
 
     function removeVideoStream(id) {
       const elem = document.getElementById(`container-${id}`);
-      if (elem) elem.remove();
+
+      if (elem) {
+        const video = elem.querySelector('video');
+
+        if (video) {
+          try {
+            video.pause();
+            video.srcObject = null;
+          } catch (e) {}
+        }
+
+        elem.remove();
+      }
+
       if (calls[id]) {
-        calls[id].close();
+        try {
+          calls[id].close();
+        } catch (e) {}
+
         delete calls[id];
       }
     }
 
-    function setupAudioVolumeDetection(stream, id) {
+    // =========================
+    // Troca de tracks WebRTC
+    // =========================
+    async function replaceOutgoingTrack(kind, newTrack) {
+      for (const id in calls) {
+        const call = calls[id];
+
         try {
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            const analyser = audioCtx.createAnalyser();
-            analyser.fftSize = 256;
-            const audioTrack = stream.getAudioTracks()[0];
-            if (!audioTrack) return;
-            const mediaStream = new MediaStream([audioTrack]);
-            const source = audioCtx.createMediaStreamSource(mediaStream);
-            source.connect(analyser);
-            const dataArray = new Uint8Array(analyser.frequencyBinCount);
-            
-            const checkVolume = () => {
-                if (!document.getElementById(`container-${id}`)) return;
-                analyser.getByteFrequencyData(dataArray);
-                let sum = 0;
-                for(let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-                if ((sum / dataArray.length) > 22) {
-                    document.getElementById(`container-${id}`).classList.add('speaking');
-                } else {
-                    document.getElementById(`container-${id}`).classList.remove('speaking');
-                }
-                requestAnimationFrame(checkVolume);
-            };
-            checkVolume();
-        } catch (e) {}
+          const pc = call.peerConnection;
+
+          if (!pc) continue;
+
+          const sender = pc
+            .getSenders()
+            .find(
+              s => s.track && s.track.kind === kind
+            );
+
+          if (sender && newTrack) {
+            await sender.replaceTrack(newTrack);
+            console.log(`Track ${kind} trocada para`, id);
+          }
+
+        } catch (err) {
+          console.error(
+            `Erro trocando track ${kind} para ${id}:`,
+            err
+          );
+        }
+      }
     }
 
-    let isMuted = false;
+    // =========================
+    // Microfone
+    // =========================
     document.getElementById('ctrl-mic').addEventListener('click', () => {
       if (!localStream) return;
+
+      const audioTrack = getCurrentAudioTrack();
+
+      if (!audioTrack) {
+        alert('Nenhum microfone está disponível.');
+        return;
+      }
+
       isMuted = !isMuted;
-      localStream.getAudioTracks().forEach(track => track.enabled = !isMuted);
+      audioTrack.enabled = !isMuted;
+
+      updateMicButton();
+    });
+
+    function updateMicButton() {
       const btn = document.getElementById('ctrl-mic');
       const icon = document.getElementById('main-mic-icon');
+
       if (isMuted) {
         btn.classList.add('bg-[#da373a]', 'hover:bg-[#c92b2d]');
         btn.classList.remove('bg-[#2b2d31]', 'hover:bg-[#35373c]');
@@ -556,17 +979,33 @@
         btn.classList.add('bg-[#2b2d31]', 'hover:bg-[#35373c]');
         icon.setAttribute('data-lucide', 'mic');
       }
+
       lucide.createIcons();
+    }
+
+    // =========================
+    // Câmera
+    // =========================
+    document.getElementById('ctrl-cam').addEventListener('click', async () => {
+      if (!localStream) return;
+
+      if (isSharing) {
+        alert('Pare o compartilhamento de tela antes de alterar a câmera.');
+        return;
+      }
+
+      if (isVideoOff || !getCurrentVideoTrack()) {
+        await enableCamera();
+      } else {
+        await disableCamera();
+      }
     });
 
-    let isVideoOff = false;
-    document.getElementById('ctrl-cam').addEventListener('click', () => {
-      if (!localStream) return;
-      isVideoOff = !isVideoOff;
-      localStream.getVideoTracks().forEach(track => track.enabled = !isVideoOff);
+    function updateCameraButton() {
       const btn = document.getElementById('ctrl-cam');
       const icon = document.getElementById('main-video-icon');
-      if (isVideoOff) {
+
+      if (isVideoOff || !getCurrentVideoTrack()) {
         btn.classList.add('bg-[#da373a]', 'hover:bg-[#c92b2d]');
         btn.classList.remove('bg-[#2b2d31]', 'hover:bg-[#35373c]');
         icon.setAttribute('data-lucide', 'video-off');
@@ -575,170 +1014,567 @@
         btn.classList.add('bg-[#2b2d31]', 'hover:bg-[#35373c]');
         icon.setAttribute('data-lucide', 'video');
       }
+
       lucide.createIcons();
-    });
+    }
 
-    // Compartilhamento de Tela 100% Corrigido
-    async function startScreenShare(gamerMode) {
-      if (isSharing) return stopScreenShare();
+    // =========================
+    // Compartilhamento de tela
+    // =========================
+    async function startScreenShare(gamerMode = false) {
+      if (!localStream) {
+        alert('Entre na sala primeiro.');
+        return;
+      }
+
+      if (isSharing) {
+        stopScreenShare();
+        return;
+      }
+
       try {
-        const displayMediaOptions = gamerMode ? {
-            video: { frameRate: { ideal: 60, max: 60 }, displaySurface: "monitor" },
-            audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
-        } : { video: true, audio: true };
+        const displayMediaOptions = gamerMode
+          ? {
+              video: {
+                frameRate: { ideal: 60, max: 60 },
+                displaySurface: 'monitor'
+              },
+              audio: true
+            }
+          : {
+              video: true,
+              audio: true
+            };
 
-        screenStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-        const screenVideoTrack = screenStream.getVideoTracks()[0];
-        const screenAudioTrack = screenStream.getAudioTracks()[0];
+        screenStream =
+          await navigator.mediaDevices.getDisplayMedia(
+            displayMediaOptions
+          );
+
+        const screenVideoTrack =
+          screenStream.getVideoTracks()[0];
+
+        if (!screenVideoTrack) {
+          throw new Error('O navegador não forneceu a tela.');
+        }
+
+        const screenAudioTrack =
+          screenStream.getAudioTracks()[0];
+
+        // Compartilha tela + áudio da tela.
+        // Se não houver áudio da tela, mantém o microfone.
+        const micTrack = getCurrentAudioTrack();
 
         const tracksToSend = [screenVideoTrack];
+
         if (screenAudioTrack) {
-            tracksToSend.push(screenAudioTrack);
-        } else if (localStream.getAudioTracks()[0]) {
-            tracksToSend.push(localStream.getAudioTracks()[0]);
+          tracksToSend.push(screenAudioTrack);
+        } else if (micTrack) {
+          tracksToSend.push(micTrack);
         }
 
         const mixedStream = new MediaStream(tracksToSend);
-        activeStream = mixedStream; // Atualiza para quem entrar DEPOIS
 
-        // Atualiza para quem JÁ ESTÁ na sala
-        for (let id in calls) {
-          const senderVideo = calls[id].peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-          const senderAudio = calls[id].peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
-          
-          if (senderVideo && screenVideoTrack) senderVideo.replaceTrack(screenVideoTrack).catch(()=>{});
-          if (senderAudio && screenAudioTrack) senderAudio.replaceTrack(screenAudioTrack).catch(()=>{});
-        }
-        
-        const myVideo = document.getElementById('video-local-video');
-        myVideo.srcObject = mixedStream;
-        myVideo.classList.remove('transform', 'scale-x-[-1]');
-        
+        activeStream = mixedStream;
         isSharing = true;
 
-        if (gamerMode) {
-            document.getElementById('ctrl-gamer').classList.add('ring-4', 'ring-[#b05cff]', 'bg-white', 'text-[#b05cff]');
-        } else {
-            document.getElementById('ctrl-screen').classList.add('bg-[#23a55a]');
-            document.getElementById('ctrl-screen').classList.remove('bg-[#2b2d31]');
+        // Atualiza o vídeo local.
+        const myVideo =
+          document.getElementById('video-local-video');
+
+        if (myVideo) {
+          myVideo.srcObject = mixedStream;
+          myVideo.classList.remove(
+            'transform',
+            'scale-x-[-1]'
+          );
+          myVideo.play().catch(() => {});
         }
 
-        screenVideoTrack.onended = () => stopScreenShare();
-      } catch (e) {
-        console.log('Compartilhamento cancelado.');
+        // Troca vídeo para tela em todos os peers.
+        await replaceOutgoingTrack(
+          'video',
+          screenVideoTrack
+        );
+
+        // Troca áudio para áudio da tela quando existir.
+        // Sem áudio de tela, continua usando microfone.
+        await replaceOutgoingTrack(
+          'audio',
+          screenAudioTrack || micTrack
+        );
+
+        updateScreenButtons(gamerMode);
+
+        // Se o usuário clicar no botão de parar compartilhamento
+        // do próprio navegador, volta automaticamente para câmera.
+        screenVideoTrack.onended = () => {
+          if (isSharing) stopScreenShare();
+        };
+
+      } catch (err) {
+        console.error('Erro no compartilhamento:', err);
+
+        if (screenStream) {
+          screenStream.getTracks().forEach(t => t.stop());
+          screenStream = null;
+        }
+
+        alert(
+          'Não foi possível compartilhar a tela.\n\n' +
+          'Se você cancelou a janela de seleção, é normal.'
+        );
       }
     }
 
-    function stopScreenShare() {
+    async function stopScreenShare() {
       if (!isSharing || !localStream) return;
-      
-      activeStream = localStream; // Volta a enviar a câmera
-      const videoTrack = localStream.getVideoTracks()[0];
-      const audioTrack = localStream.getAudioTracks()[0];
-      
-      for (let id in calls) {
-        const senderVideo = calls[id].peerConnection.getSenders().find(s => s.track && s.track.kind === 'video');
-        const senderAudio = calls[id].peerConnection.getSenders().find(s => s.track && s.track.kind === 'audio');
-        
-        if (senderVideo && videoTrack) senderVideo.replaceTrack(videoTrack).catch(()=>{});
-        if (senderAudio && audioTrack) senderAudio.replaceTrack(audioTrack).catch(()=>{});
-      }
-      
-      const myVideo = document.getElementById('video-local-video');
-      myVideo.srcObject = localStream;
-      myVideo.classList.add('transform', 'scale-x-[-1]');
-      
-      document.getElementById('ctrl-screen').classList.remove('bg-[#23a55a]');
-      document.getElementById('ctrl-screen').classList.add('bg-[#2b2d31]');
-      document.getElementById('ctrl-gamer').classList.remove('ring-4', 'ring-[#b05cff]', 'bg-white', 'text-[#b05cff]');
-      
-      if (screenStream) screenStream.getTracks().forEach(t => t.stop());
+
+      const cameraTrack = getCurrentVideoTrack();
+      const micTrack = getCurrentAudioTrack();
+
+      activeStream = localStream;
       isSharing = false;
+
+      // Volta o vídeo para a câmera.
+      if (cameraTrack) {
+        await replaceOutgoingTrack('video', cameraTrack);
+      }
+
+      // Volta o áudio para o microfone.
+      if (micTrack) {
+        await replaceOutgoingTrack('audio', micTrack);
+      }
+
+      const myVideo =
+        document.getElementById('video-local-video');
+
+      if (myVideo) {
+        myVideo.srcObject = localStream;
+        myVideo.classList.add(
+          'transform',
+          'scale-x-[-1]'
+        );
+        myVideo.play().catch(() => {});
+      }
+
+      if (screenStream) {
+        screenStream.getTracks().forEach(t => t.stop());
+        screenStream = null;
+      }
+
+      updateScreenButtons(false);
+      updateCameraButton();
     }
 
-    document.getElementById('ctrl-screen').addEventListener('click', () => startScreenShare(false));
-    document.getElementById('ctrl-gamer').addEventListener('click', () => startScreenShare(true));
+    function updateScreenButtons(gamerMode) {
+      const screenBtn =
+        document.getElementById('ctrl-screen');
 
-    const chatInput = document.getElementById('chat-input');
-    const chatMessages = document.getElementById('chat-messages');
+      const gamerBtn =
+        document.getElementById('ctrl-gamer');
+
+      if (isSharing) {
+        screenBtn.classList.add('bg-[#23a55a]');
+        screenBtn.classList.remove('bg-[#2b2d31]');
+
+        if (gamerMode) {
+          gamerBtn.classList.add(
+            'ring-4',
+            'ring-[#b05cff]',
+            'bg-white',
+            'text-[#b05cff]'
+          );
+        }
+      } else {
+        screenBtn.classList.remove('bg-[#23a55a]');
+        screenBtn.classList.add('bg-[#2b2d31]');
+
+        gamerBtn.classList.remove(
+          'ring-4',
+          'ring-[#b05cff]',
+          'bg-white',
+          'text-[#b05cff]'
+        );
+      }
+    }
+
+    document.getElementById('ctrl-screen')
+      .addEventListener('click', () => {
+        startScreenShare(false);
+      });
+
+    document.getElementById('ctrl-gamer')
+      .addEventListener('click', () => {
+        startScreenShare(true);
+      });
+
+    // =========================
+    // Chat
+    // =========================
+    const chatInput =
+      document.getElementById('chat-input');
+
+    const chatMessages =
+      document.getElementById('chat-messages');
 
     function sendChatMessage() {
-        const text = chatInput.value.trim();
-        if (!text) return;
-        
-        // Renderiza minha própria mensagem
-        appendChatMessage(myProfile, text, true);
-        
-        // Envia mensagem via MQTT para todos na sala (Resolve o bug)
-        if (mqttClient && peer) {
-            mqttClient.publish(`iagocord/rooms/${currentRoom}`, JSON.stringify({
-                type: 'chat',
-                peerId: peer.id,
-                profile: myProfile,
-                message: text
-            }));
+      const text = chatInput.value.trim();
+
+      if (!text) return;
+
+      if (!mqttClient || !mqttConnected || !peer) {
+        alert(
+          'O chat ainda não está conectado. Aguarde alguns segundos.'
+        );
+        return;
+      }
+
+      appendChatMessage(
+        myProfile,
+        text,
+        true
+      );
+
+      mqttClient.publish(
+        `iagocord/rooms/${currentRoom}`,
+        JSON.stringify({
+          type: 'chat',
+          peerId: peer.id,
+          profile: myProfile,
+          message: text
+        }),
+        { qos: 0 },
+        (err) => {
+          if (err) {
+            console.error('Erro enviando mensagem:', err);
+          }
         }
-        
-        chatInput.value = '';
+      );
+
+      chatInput.value = '';
     }
 
-    document.getElementById('btn-send-msg').addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendChatMessage(); });
+    document.getElementById('btn-send-msg')
+      .addEventListener('click', sendChatMessage);
 
-    function appendChatMessage(profile, text, isMe) {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = "flex gap-3 hover:bg-[#35373c] group transition-colors rounded-xl p-2 -mx-2";
-        
-        let avatarHtml = profile.avatar 
-            ? `<img src="${profile.avatar}" class="w-10 h-10 rounded-full mt-0.5 object-cover flex-shrink-0 shadow-sm border border-[#1e1f22]" />`
-            : `<div class="w-10 h-10 rounded-full mt-0.5 bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm border border-[#1e1f22]">${profile.name.charAt(0).toUpperCase()}</div>`;
-
-        const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const formattedText = text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="text-[#00a8fc] hover:underline">$1</a>');
-
-        msgDiv.innerHTML = `
-            ${avatarHtml}
-            <div class="flex-1 min-w-0">
-                <div class="flex items-baseline gap-2 mb-0.5">
-                    <span class="font-extrabold text-[13px] ${isMe ? 'text-[#23a55a]' : 'text-white'}">${profile.name}</span>
-                    <span class="text-[10px] text-[#949ba4] font-medium">${time}</span>
-                </div>
-                <div class="text-[13px] text-[#dbdee1] break-words whitespace-pre-wrap leading-relaxed">${formattedText}</div>
-            </div>
-        `;
-        
-        chatMessages.appendChild(msgDiv);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-        if (!isMe && !isChatOpen) {
-            const btn = document.getElementById('btn-toggle-chat');
-            btn.classList.add('bg-[#5865f2]', 'animate-pulse');
-            setTimeout(() => btn.classList.remove('bg-[#5865f2]', 'animate-pulse'), 3000);
-        }
-    }
-
-    document.getElementById('btn-copy-link').addEventListener('click', () => {
-      navigator.clipboard.writeText(`${window.location.origin}${window.location.pathname}?room=${currentRoom || 'geral'}`);
-      const span = document.querySelector('#btn-copy-link span');
-      const icon = document.querySelector('#btn-copy-link i');
-      const originalText = span.innerText;
-      span.innerText = "Copiado!";
-      icon.setAttribute('data-lucide', 'check');
-      lucide.createIcons();
-      setTimeout(() => { span.innerText = originalText; icon.setAttribute('data-lucide', 'user-plus'); lucide.createIcons(); }, 2000);
-    });
-
-    document.getElementById('ctrl-leave').addEventListener('click', () => {
-      if (confirm('Deseja realmente sair da call?')) {
-        if (localStream) localStream.getTracks().forEach(t => t.stop());
-        if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-        
-        if (mqttClient && peer) {
-            mqttClient.publish(`iagocord/rooms/${currentRoom}`, JSON.stringify({ type: 'leave', peerId: peer.id }));
-            mqttClient.end();
-        }
-        location.reload();
+    chatInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        sendChatMessage();
       }
     });
+
+    function appendChatMessage(profile, text, isMe) {
+      const msgDiv = document.createElement('div');
+
+      msgDiv.className =
+        'flex gap-3 hover:bg-[#35373c] group transition-colors rounded-xl p-2 -mx-2';
+
+      const avatar = profile?.avatar
+        ? escapeAttribute(profile.avatar)
+        : null;
+
+      const safeName =
+        escapeHtml(profile?.name || 'Usuário');
+
+      const safeText =
+        escapeHtml(text || '');
+
+      const avatarHtml = avatar
+        ? `<img src="${avatar}" class="w-10 h-10 rounded-full mt-0.5 object-cover flex-shrink-0 shadow-sm border border-[#1e1f22]" />`
+        : `<div class="w-10 h-10 rounded-full mt-0.5 bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm border border-[#1e1f22]">${safeName.charAt(0).toUpperCase()}</div>`;
+
+      const time =
+        new Date().toLocaleTimeString(
+          'pt-BR',
+          {
+            hour: '2-digit',
+            minute: '2-digit'
+          }
+        );
+
+      // Converte URLs já escapadas em links.
+      const formattedText =
+        safeText.replace(
+          /(https?:\/\/[^\s<]+)/g,
+          '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00a8fc] hover:underline">$1</a>'
+        );
+
+      msgDiv.innerHTML = `
+        ${avatarHtml}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2 mb-0.5">
+            <span class="font-extrabold text-[13px] ${isMe ? 'text-[#23a55a]' : 'text-white'}">${safeName}</span>
+            <span class="text-[10px] text-[#949ba4] font-medium">${time}</span>
+          </div>
+          <div class="text-[13px] text-[#dbdee1] break-words whitespace-pre-wrap leading-relaxed">${formattedText}</div>
+        </div>
+      `;
+
+      chatMessages.appendChild(msgDiv);
+      chatMessages.scrollTop =
+        chatMessages.scrollHeight;
+
+      if (!isMe && !isChatOpen) {
+        const btn =
+          document.getElementById('btn-toggle-chat');
+
+        btn.classList.add(
+          'bg-[#5865f2]',
+          'animate-pulse'
+        );
+
+        setTimeout(() => {
+          btn.classList.remove(
+            'bg-[#5865f2]',
+            'animate-pulse'
+          );
+        }, 3000);
+      }
+    }
+
+    // =========================
+    // Volume / speaking indicator
+    // =========================
+    function setupAudioVolumeDetection(stream, id) {
+      try {
+        const audioTrack =
+          stream.getAudioTracks()[0];
+
+        if (!audioTrack) return;
+
+        const AudioContext =
+          window.AudioContext ||
+          window.webkitAudioContext;
+
+        if (!AudioContext) return;
+
+        const audioCtx =
+          new AudioContext();
+
+        const analyser =
+          audioCtx.createAnalyser();
+
+        analyser.fftSize = 256;
+
+        const mediaStream =
+          new MediaStream([audioTrack]);
+
+        const source =
+          audioCtx.createMediaStreamSource(
+            mediaStream
+          );
+
+        source.connect(analyser);
+
+        const dataArray =
+          new Uint8Array(
+            analyser.frequencyBinCount
+          );
+
+        const checkVolume = () => {
+          const container =
+            document.getElementById(
+              `container-${id}`
+            );
+
+          if (!container) {
+            try {
+              audioCtx.close();
+            } catch (e) {}
+            return;
+          }
+
+          analyser.getByteFrequencyData(
+            dataArray
+          );
+
+          let sum = 0;
+
+          for (
+            let i = 0;
+            i < dataArray.length;
+            i++
+          ) {
+            sum += dataArray[i];
+          }
+
+          if (
+            sum / dataArray.length > 22
+          ) {
+            container.classList.add(
+              'speaking'
+            );
+          } else {
+            container.classList.remove(
+              'speaking'
+            );
+          }
+
+          requestAnimationFrame(
+            checkVolume
+          );
+        };
+
+        checkVolume();
+
+      } catch (err) {
+        console.warn(
+          'Detector de voz indisponível:',
+          err
+        );
+      }
+    }
+
+    // =========================
+    // Copiar convite
+    // =========================
+    document.getElementById('btn-copy-link')
+      .addEventListener('click', async () => {
+
+        const room =
+          currentRoom || 'geral';
+
+        const link =
+          `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(room)}`;
+
+        try {
+          await navigator.clipboard.writeText(link);
+        } catch (err) {
+          // Fallback para ambientes onde Clipboard API está bloqueada.
+          const temp =
+            document.createElement('textarea');
+
+          temp.value = link;
+          document.body.appendChild(temp);
+          temp.select();
+
+          try {
+            document.execCommand('copy');
+          } catch (e) {}
+
+          temp.remove();
+        }
+
+        const span =
+          document.querySelector(
+            '#btn-copy-link span'
+          );
+
+        const icon =
+          document.querySelector(
+            '#btn-copy-link i'
+          );
+
+        if (span) {
+          const originalText =
+            span.innerText;
+
+          span.innerText = 'Copiado!';
+
+          if (icon) {
+            icon.setAttribute(
+              'data-lucide',
+              'check'
+            );
+
+            lucide.createIcons();
+          }
+
+          setTimeout(() => {
+            span.innerText =
+              originalText;
+
+            if (icon) {
+              icon.setAttribute(
+                'data-lucide',
+                'user-plus'
+              );
+
+              lucide.createIcons();
+            }
+          }, 2000);
+        }
+      });
+
+    // =========================
+    // Sair
+    // =========================
+    document.getElementById('ctrl-leave')
+      .addEventListener('click', () => {
+
+        if (
+          !confirm(
+            'Deseja realmente sair da call?'
+          )
+        ) {
+          return;
+        }
+
+        try {
+          if (localStream) {
+            localStream
+              .getTracks()
+              .forEach(t => t.stop());
+          }
+
+          if (screenStream) {
+            screenStream
+              .getTracks()
+              .forEach(t => t.stop());
+          }
+
+          for (const id in calls) {
+            try {
+              calls[id].close();
+            } catch (e) {}
+          }
+
+          if (mqttClient && mqttConnected && peer) {
+            mqttClient.publish(
+              `iagocord/rooms/${currentRoom}`,
+              JSON.stringify({
+                type: 'leave',
+                peerId: peer.id
+              })
+            );
+
+            mqttClient.end();
+          }
+
+          if (peer) {
+            peer.destroy();
+          }
+
+        } catch (e) {
+          console.error(e);
+        }
+
+        location.reload();
+      });
+
+    // =========================
+    // Segurança básica para texto
+    // =========================
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function escapeAttribute(value) {
+      return escapeHtml(value);
+    }
+
+    // Aviso útil no console.
+    console.log(
+      '%ciagocord carregado.',
+      'color:#5865f2;font-weight:bold;'
+    );
   </script>
 </body>
 </html>
