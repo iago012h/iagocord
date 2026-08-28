@@ -52,10 +52,47 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
 
+    #videos-grid.has-pinned {
+      align-content: start;
+    }
+    
     .video-pinned {
       grid-column: 1 / -1 !important;
-      min-h: 60vh !important;
+      height: 70vh !important;
+      min-height: 400px !important;
       z-index: 10;
+    }
+
+    #videos-grid.has-pinned .video-card:not(.video-pinned) {
+      height: 180px !important;
+      min-height: 180px !important;
+    }
+
+    /* Estilos para tela cheia nativa do navegador */
+    .video-card:fullscreen {
+      border: none !important;
+      border-radius: 0 !important;
+      background: #000 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    
+    .video-card:fullscreen video {
+      object-fit: contain !important;
+      background: #000 !important;
+    }
+
+    .video-card:-webkit-full-screen {
+      border: none !important;
+      border-radius: 0 !important;
+      background: #000 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+    }
+    
+    .video-card:-webkit-full-screen video {
+      object-fit: contain !important;
+      background: #000 !important;
     }
     
     .glow-hover:hover {
@@ -258,8 +295,8 @@
     let myPeerId = null;
     let myProfile = { name: 'Usuário', avatar: null };
     const calls = {};
-    const remoteProfiles = {}; // Mantém informações do peer caso precisemos reconectar sem perder dados
-    const activeScreenShares = new Set(); // Mantém rastro de quem está compartilhando
+    const remoteProfiles = {}; 
+    const activeScreenShares = new Set(); 
     let isSharing = false;
     let isMuted = false;
     let isVideoOff = false;
@@ -347,6 +384,20 @@
 
     function getCurrentVideoTrack() {
       return localStream?.getVideoTracks()?.[0] || null;
+    }
+
+    function updateGridLayout() {
+      const grid = document.getElementById('videos-grid');
+      if (!grid) return;
+      const hasPinned = grid.querySelector('.video-pinned');
+      
+      if (hasPinned) {
+        grid.classList.add('has-pinned');
+        grid.classList.remove('auto-rows-fr');
+      } else {
+        grid.classList.remove('has-pinned');
+        grid.classList.add('auto-rows-fr');
+      }
     }
 
     // =========================
@@ -443,7 +494,6 @@
       } catch (cameraError) {
         console.warn('Câmera + microfone falharam:', cameraError);
 
-        // Tenta somente microfone como fallback.
         localStream = await navigator.mediaDevices.getUserMedia({
           video: false,
           audio: {
@@ -654,7 +704,7 @@
         
         setTimeout(() => {
           connectToPeer(peerId, remoteProfiles[peerId]);
-        }, 1500); // Dá tempo para que a conexão feche corretamente de ambos os lados e restabeleça
+        }, 1500); 
       }
     }
 
@@ -737,7 +787,6 @@
             remoteProfiles[data.peerId] = data.profile;
             connectToPeer(data.peerId, data.profile);
             
-            // Avisa quem entrou que eu estou compartilhando tela, se for o caso
             if (isSharing) {
                mqttClient.publish(roomTopic, JSON.stringify({
                  type: 'screen-share-start',
@@ -765,6 +814,7 @@
             const container = document.getElementById(`container-${data.peerId}`);
             if (container) {
               container.classList.add('video-pinned');
+              updateGridLayout();
               const video = document.getElementById(`video-${data.peerId}`);
               if (video) {
                 video.classList.remove('object-cover');
@@ -778,6 +828,7 @@
             const container = document.getElementById(`container-${data.peerId}`);
             if (container) {
               container.classList.remove('video-pinned');
+              updateGridLayout();
               const video = document.getElementById(`video-${data.peerId}`);
               if (video) {
                 video.classList.add('object-cover');
@@ -841,9 +892,9 @@
               : ''
           }`;
 
-        // Verifica se a stream deve nascer como tela compartilhada
         if (activeScreenShares.has(id)) {
            card.classList.add('video-pinned');
+           updateGridLayout();
            video.classList.remove('object-cover');
            video.classList.add('object-contain', 'bg-black');
         }
@@ -854,7 +905,7 @@
 
         const overlay = document.createElement('div');
         overlay.className =
-          'absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90';
+          'absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90 z-10 transition-opacity duration-300';
 
         const tag = document.createElement('div');
         tag.className =
@@ -872,17 +923,43 @@
         topActions.className =
           'absolute top-3 right-3 flex items-center gap-2 pointer-events-auto opacity-0 group-hover:opacity-100 transition-all';
 
+        // Botão de expandir dentro do chat (Fixar layout na página)
         const btnPin = document.createElement('button');
         btnPin.className =
           'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
-        btnPin.title = 'Fixar / Destacar';
+        btnPin.title = 'Destacar na Grade';
         btnPin.innerHTML =
           `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
         btnPin.onclick = () => {
           card.classList.toggle('video-pinned');
+          updateGridLayout();
         };
-
         topActions.appendChild(btnPin);
+
+        // Botão de TELA CHEIA (Monitor todo, ignorando o resto)
+        const btnFullscreen = document.createElement('button');
+        btnFullscreen.className =
+          'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
+        btnFullscreen.title = 'Focar (Tela Cheia do Monitor)';
+        btnFullscreen.innerHTML =
+          `<i data-lucide="monitor" class="w-4 h-4"></i>`;
+        
+        btnFullscreen.onclick = () => {
+          if (!document.fullscreenElement) {
+            if (card.requestFullscreen) {
+              card.requestFullscreen().catch(err => console.error(err));
+            } else if (card.webkitRequestFullscreen) {
+              card.webkitRequestFullscreen();
+            } else if (card.msRequestFullscreen) {
+              card.msRequestFullscreen();
+            }
+          } else {
+            if (document.exitFullscreen) {
+              document.exitFullscreen();
+            }
+          }
+        };
+        topActions.appendChild(btnFullscreen);
 
         if (!isLocal) {
           const volumeContainer = document.createElement('div');
@@ -960,6 +1037,7 @@
         }
 
         elem.remove();
+        updateGridLayout();
       }
 
       if (calls[id]) {
@@ -996,8 +1074,6 @@
               console.log(`Track ${kind} trocada para`, id);
             }
           } else {
-             // Se não existe sender (ex: entrou sem vídeo e agora quer compartilhar),
-             // replaceTrack falha. Precisaremos reconectar os peers manualmente!
              if (newTrack) requiresReconnect = true;
           }
 
@@ -1129,10 +1205,7 @@
         const screenAudioTrack =
           screenStream.getAudioTracks()[0];
 
-        // Compartilha tela + áudio da tela.
-        // Se não houver áudio da tela, mantém o microfone.
         const micTrack = getCurrentAudioTrack();
-
         const tracksToSend = [screenVideoTrack];
 
         if (screenAudioTrack) {
@@ -1146,7 +1219,6 @@
         activeStream = mixedStream;
         isSharing = true;
 
-        // Atualiza o vídeo local e redimensiona layout
         const myVideo = document.getElementById('video-local-video');
         const myContainer = document.getElementById('container-local-video');
 
@@ -1163,15 +1235,14 @@
         
         if (myContainer) {
           myContainer.classList.add('video-pinned');
+          updateGridLayout();
         }
 
-        // Troca vídeo para tela em todos os peers.
         await replaceOutgoingTrack(
           'video',
           screenVideoTrack
         );
 
-        // Troca áudio para áudio da tela quando existir.
         await replaceOutgoingTrack(
           'audio',
           screenAudioTrack || micTrack
@@ -1179,7 +1250,6 @@
 
         updateScreenButtons(gamerMode);
         
-        // Notifica via MQTT para todos alterarem o layout
         if (mqttClient && mqttConnected) {
           mqttClient.publish(
             `iagocord/rooms/${currentRoom}`,
@@ -1190,7 +1260,6 @@
           );
         }
 
-        // Se o usuário clicar no botão de parar compartilhamento do navegador
         screenVideoTrack.onended = () => {
           if (isSharing) stopScreenShare();
         };
@@ -1219,12 +1288,10 @@
       activeStream = localStream;
       isSharing = false;
 
-      // Volta o vídeo para a câmera.
       if (cameraTrack) {
         await replaceOutgoingTrack('video', cameraTrack);
       }
 
-      // Volta o áudio para o microfone.
       if (micTrack) {
         await replaceOutgoingTrack('audio', micTrack);
       }
@@ -1244,6 +1311,7 @@
       }
       if (myContainer) {
         myContainer.classList.remove('video-pinned');
+        updateGridLayout();
       }
 
       if (screenStream) {
@@ -1254,7 +1322,6 @@
       updateScreenButtons(false);
       updateCameraButton();
       
-      // Notifica via MQTT para todos removerem layout de tela cheia
       if (mqttClient && mqttConnected) {
         mqttClient.publish(
           `iagocord/rooms/${currentRoom}`,
