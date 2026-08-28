@@ -258,6 +258,8 @@
     let myPeerId = null;
     let myProfile = { name: 'Usuário', avatar: null };
     const calls = {};
+    const remoteProfiles = {}; // Mantém informações do peer caso precisemos reconectar sem perder dados
+    const activeScreenShares = new Set(); // Mantém rastro de quem está compartilhando
     let isSharing = false;
     let isMuted = false;
     let isVideoOff = false;
@@ -553,6 +555,7 @@
         const incomingProfile =
           call.metadata?.profile || { name: 'Amigo', avatar: null };
 
+        remoteProfiles[call.peer] = incomingProfile;
         calls[call.peer] = call;
 
         call.answer(activeStream || localStream);
@@ -644,6 +647,17 @@
       });
     }
 
+    function reconnectAllPeers() {
+      const currentPeers = Object.keys(calls);
+      for (const peerId of currentPeers) {
+        removeVideoStream(peerId);
+        
+        setTimeout(() => {
+          connectToPeer(peerId, remoteProfiles[peerId]);
+        }, 1500); // Dá tempo para que a conexão feche corretamente de ambos os lados e restabeleça
+      }
+    }
+
     // =========================
     // MQTT: presença + chat
     // =========================
@@ -673,9 +687,7 @@
 
       mqttClient.on('connect', () => {
         mqttConnected = true;
-
         console.log('MQTT conectado.');
-
         setStatus('ONLINE', 'green');
 
         mqttClient.subscribe(roomTopic, { qos: 0 }, (err) => {
@@ -722,11 +734,22 @@
           if (data.peerId === myId) return;
 
           if (data.type === 'join') {
+            remoteProfiles[data.peerId] = data.profile;
             connectToPeer(data.peerId, data.profile);
+            
+            // Avisa quem entrou que eu estou compartilhando tela, se for o caso
+            if (isSharing) {
+               mqttClient.publish(roomTopic, JSON.stringify({
+                 type: 'screen-share-start',
+                 peerId: myPeerId
+               }));
+            }
           }
 
           else if (data.type === 'leave') {
             removeVideoStream(data.peerId);
+            delete remoteProfiles[data.peerId];
+            activeScreenShares.delete(data.peerId);
           }
 
           else if (data.type === 'chat') {
@@ -735,6 +758,32 @@
               data.message || '',
               false
             );
+          }
+          
+          else if (data.type === 'screen-share-start') {
+            activeScreenShares.add(data.peerId);
+            const container = document.getElementById(`container-${data.peerId}`);
+            if (container) {
+              container.classList.add('video-pinned');
+              const video = document.getElementById(`video-${data.peerId}`);
+              if (video) {
+                video.classList.remove('object-cover');
+                video.classList.add('object-contain', 'bg-black');
+              }
+            }
+          }
+
+          else if (data.type === 'screen-share-stop') {
+            activeScreenShares.delete(data.peerId);
+            const container = document.getElementById(`container-${data.peerId}`);
+            if (container) {
+              container.classList.remove('video-pinned');
+              const video = document.getElementById(`video-${data.peerId}`);
+              if (video) {
+                video.classList.add('object-cover');
+                video.classList.remove('object-contain', 'bg-black');
+              }
+            }
           }
 
         } catch (err) {
@@ -791,6 +840,13 @@
               ? 'transform scale-x-[-1]'
               : ''
           }`;
+
+        // Verifica se a stream deve nascer como tela compartilhada
+        if (activeScreenShares.has(id)) {
+           card.classList.add('video-pinned');
+           video.classList.remove('object-cover');
+           video.classList.add('object-contain', 'bg-black');
+        }
 
         video.onloadedmetadata = () => {
           video.play().catch(() => {});
@@ -919,12 +975,13 @@
     // Troca de tracks WebRTC
     // =========================
     async function replaceOutgoingTrack(kind, newTrack) {
+      let requiresReconnect = false;
+
       for (const id in calls) {
         const call = calls[id];
 
         try {
           const pc = call.peerConnection;
-
           if (!pc) continue;
 
           const sender = pc
@@ -933,9 +990,15 @@
               s => s.track && s.track.kind === kind
             );
 
-          if (sender && newTrack) {
-            await sender.replaceTrack(newTrack);
-            console.log(`Track ${kind} trocada para`, id);
+          if (sender) {
+            if (newTrack) {
+              await sender.replaceTrack(newTrack);
+              console.log(`Track ${kind} trocada para`, id);
+            }
+          } else {
+             // Se não existe sender (ex: entrou sem vídeo e agora quer compartilhar),
+             // replaceTrack falha. Precisaremos reconectar os peers manualmente!
+             if (newTrack) requiresReconnect = true;
           }
 
         } catch (err) {
@@ -944,6 +1007,11 @@
             err
           );
         }
+      }
+      
+      if (requiresReconnect) {
+        console.log("Renegociação manual necessária (Track Inexistente): reconectando peers...");
+        reconnectAllPeers();
       }
     }
 
@@ -1078,17 +1146,23 @@
         activeStream = mixedStream;
         isSharing = true;
 
-        // Atualiza o vídeo local.
-        const myVideo =
-          document.getElementById('video-local-video');
+        // Atualiza o vídeo local e redimensiona layout
+        const myVideo = document.getElementById('video-local-video');
+        const myContainer = document.getElementById('container-local-video');
 
         if (myVideo) {
           myVideo.srcObject = mixedStream;
           myVideo.classList.remove(
             'transform',
-            'scale-x-[-1]'
+            'scale-x-[-1]',
+            'object-cover'
           );
+          myVideo.classList.add('object-contain', 'bg-black');
           myVideo.play().catch(() => {});
+        }
+        
+        if (myContainer) {
+          myContainer.classList.add('video-pinned');
         }
 
         // Troca vídeo para tela em todos os peers.
@@ -1098,16 +1172,25 @@
         );
 
         // Troca áudio para áudio da tela quando existir.
-        // Sem áudio de tela, continua usando microfone.
         await replaceOutgoingTrack(
           'audio',
           screenAudioTrack || micTrack
         );
 
         updateScreenButtons(gamerMode);
+        
+        // Notifica via MQTT para todos alterarem o layout
+        if (mqttClient && mqttConnected) {
+          mqttClient.publish(
+            `iagocord/rooms/${currentRoom}`,
+            JSON.stringify({
+              type: 'screen-share-start',
+              peerId: myPeerId
+            })
+          );
+        }
 
-        // Se o usuário clicar no botão de parar compartilhamento
-        // do próprio navegador, volta automaticamente para câmera.
+        // Se o usuário clicar no botão de parar compartilhamento do navegador
         screenVideoTrack.onended = () => {
           if (isSharing) stopScreenShare();
         };
@@ -1146,16 +1229,21 @@
         await replaceOutgoingTrack('audio', micTrack);
       }
 
-      const myVideo =
-        document.getElementById('video-local-video');
+      const myVideo = document.getElementById('video-local-video');
+      const myContainer = document.getElementById('container-local-video');
 
       if (myVideo) {
         myVideo.srcObject = localStream;
         myVideo.classList.add(
           'transform',
-          'scale-x-[-1]'
+          'scale-x-[-1]',
+          'object-cover'
         );
+        myVideo.classList.remove('object-contain', 'bg-black');
         myVideo.play().catch(() => {});
+      }
+      if (myContainer) {
+        myContainer.classList.remove('video-pinned');
       }
 
       if (screenStream) {
@@ -1165,6 +1253,17 @@
 
       updateScreenButtons(false);
       updateCameraButton();
+      
+      // Notifica via MQTT para todos removerem layout de tela cheia
+      if (mqttClient && mqttConnected) {
+        mqttClient.publish(
+          `iagocord/rooms/${currentRoom}`,
+          JSON.stringify({
+            type: 'screen-share-stop',
+            peerId: myPeerId
+          })
+        );
+      }
     }
 
     function updateScreenButtons(gamerMode) {
@@ -1294,7 +1393,6 @@
           }
         );
 
-      // Converte URLs já escapadas em links.
       const formattedText =
         safeText.replace(
           /(https?:\/\/[^\s<]+)/g,
@@ -1442,7 +1540,6 @@
         try {
           await navigator.clipboard.writeText(link);
         } catch (err) {
-          // Fallback para ambientes onde Clipboard API está bloqueada.
           const temp =
             document.createElement('textarea');
 
@@ -1570,7 +1667,6 @@
       return escapeHtml(value);
     }
 
-    // Aviso útil no console.
     console.log(
       '%ciagocord carregado.',
       'color:#5865f2;font-weight:bold;'
