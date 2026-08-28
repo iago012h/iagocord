@@ -104,39 +104,145 @@
 </head>
 <body class="h-screen flex overflow-hidden select-none bg-grid-pattern">
 
-  <!-- 1. Barra Lateral de Servidores -->
-  <aside class="w-[72px] bg-[var(--discord-darkest)] flex flex-col items-center py-4 gap-3 flex-shrink-0 z-20 hidden md:flex shadow-2xl">
-    <div class="w-12 h-12 bg-gradient-to-br from-[#5865f2] to-[#7983f5] rounded-2xl flex items-center justify-center text-white font-bold text-2xl cursor-pointer hover:rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(88,101,242,0.5)]">
-      <i>i</i>
-    </div>
-    <div class="w-8 h-[2px] bg-[#35363c] rounded my-1"></div>
-    <div id="btn-reload" title="Recarregar Chamada" class="w-12 h-12 bg-[#2b2d31] hover:bg-[#23a55a] text-[#23a55a] hover:text-white rounded-full hover:rounded-2xl flex items-center justify-center cursor-pointer transition-all">
-      <i data-lucide="refresh-cw" class="w-5 h-5"></i>
-    </div>
-  </aside>
-
-  <!-- 2. Barra de Canais -->
-  <aside id="sidebar-channels" class="w-full md:w-64 bg-[var(--discord-sidebar)] flex flex-col justify-between flex-shrink-0 border-r border-[#111214] absolute md:relative z-10 h-full transition-transform duration-300">
-    <div>
-      <div class="h-14 px-4 flex items-center justify-between font-extrabold text-white shadow-md bg-gradient-to-r from-[#1e1f22] to-[#2b2d31]">
-        <span class="truncate tracking-wide">IAGOCORD PREMIUM</span>
-        <button id="btn-close-sidebar" class="md:hidden p-1 hover:bg-[#35373c] rounded text-gray-400">
-            <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+  <!-- ============================================== -->
+  <!-- TELA DE AUTHENTICATION (LOGIN / REGISTRO)      -->
+  <!-- ============================================== -->
+  <div id="auth-screen" class="fixed inset-0 bg-[var(--discord-darkest)] z-50 flex items-center justify-center p-4">
+    <div class="bg-[var(--discord-sidebar)] border border-[#2b2d31] w-full max-w-md p-8 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.6)] text-center flex flex-col justify-center">
+      <div class="w-16 h-16 bg-gradient-to-br from-[#5865f2] to-[#7983f5] rounded-3xl mx-auto flex items-center justify-center text-white mb-6 shadow-lg shadow-[#5865f2]/20 transform -rotate-6 shrink-0">
+        <i data-lucide="headset" class="w-8 h-8"></i>
+      </div>
+      
+      <!-- Box de Login -->
+      <div id="auth-login-box">
+        <h2 class="text-2xl font-extrabold text-white mb-1">Boas-vindas de volta!</h2>
+        <p class="text-sm text-[#949ba4] mb-6 font-medium">Estamos muito felizes em ver você novamente!</p>
+        
+        <div class="space-y-4 text-left">
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">E-mail *</label>
+            <input id="login-email" type="email" placeholder="nome@email.com" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Senha *</label>
+            <input id="login-password" type="password" placeholder="Sua senha" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <button id="btn-login" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg glow-hover">
+            Entrar
+          </button>
+          <p class="text-xs text-gray-400 mt-4 text-center">
+            Precisando de uma conta? <button id="btn-switch-to-register" class="text-[#5865f2] hover:underline font-semibold bg-transparent border-none cursor-pointer">Registre-se</button>
+          </p>
+        </div>
       </div>
 
-      <div class="p-3 space-y-2 mt-2">
-        <div class="text-[11px] font-bold text-[#949ba4] px-2 tracking-widest uppercase">Servidor Atual</div>
-        <div class="flex items-center gap-2 px-2 py-2 rounded bg-gradient-to-r from-[#35373c] to-transparent text-white cursor-pointer border-l-2 border-[#5865f2]">
-          <i data-lucide="server" class="w-4 h-4 text-gray-300"></i>
-          <span class="text-sm font-semibold truncate" id="channel-name-display">--</span>
-          <span id="badge-status" class="ml-auto text-[9px] bg-yellow-500 text-black px-2 py-0.5 rounded-full font-bold shadow-[0_0_5px_#eab308]">CONECTANDO</span>
+      <!-- Box de Registro -->
+      <div id="auth-register-box" class="hidden">
+        <h2 class="text-2xl font-extrabold text-white mb-1">Criar uma conta</h2>
+        <p class="text-sm text-[#949ba4] mb-6 font-medium">Registre-se para começar a usar o iagocord!</p>
+        
+        <div class="space-y-4 text-left font-medium">
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Nickname *</label>
+            <input id="register-name" type="text" placeholder="Ex: Iago" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">E-mail *</label>
+            <input id="register-email" type="email" placeholder="nome@email.com" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Senha *</label>
+            <input id="register-password" type="password" placeholder="Mínimo 6 caracteres" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <div>
+            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">URL do Avatar (Opcional)</label>
+            <input id="register-avatar" type="text" placeholder="Link da imagem..." class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+          </div>
+          <button id="btn-register" class="w-full bg-[#23a55a] hover:bg-[#1a7f45] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg shadow-[#23a55a]/20">
+            Registrar e Entrar
+          </button>
+          <p class="text-xs text-gray-400 mt-4 text-center">
+            Já tem uma conta? <button id="btn-switch-to-login" class="text-[#5865f2] hover:underline font-semibold bg-transparent border-none cursor-pointer">Entrar</button>
+          </p>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Perfil Inferior -->
-    <div class="h-16 bg-[#111214] px-3 flex items-center justify-between shadow-[0_-5px_10px_rgba(0,0,0,0.2)]">
+  <!-- ============================================== -->
+  <!-- 1. BARRA LATERAL ESQUERDA (NAVEGAÇÃO PRINCIPAL)-->
+  <!-- ============================================== -->
+  <aside class="w-[72px] bg-[var(--discord-darkest)] flex flex-col items-center py-4 gap-3 flex-shrink-0 z-20 shadow-2xl">
+    <!-- Botão de Amigos / Home -->
+    <div id="nav-friends" title="Amigos & DMs" class="w-12 h-12 bg-[#5865f2] text-white rounded-2xl flex items-center justify-center cursor-pointer hover:rounded-xl hover:scale-105 transition-all shadow-[0_0_15px_rgba(88,101,242,0.5)]">
+      <i data-lucide="message-square" class="w-6 h-6"></i>
+    </div>
+    
+    <div class="w-8 h-[2px] bg-[#35363c] rounded my-1"></div>
+
+    <!-- Botão de Chamadas / Servidor -->
+    <div id="nav-server" title="Servidores de Voz" class="w-12 h-12 bg-[#2b2d31] text-[#b5bac1] hover:bg-[#23a55a] hover:text-white rounded-full hover:rounded-2xl flex items-center justify-center cursor-pointer hover:scale-105 transition-all">
+      <i data-lucide="phone" class="w-6 h-6"></i>
+    </div>
+
+    <div class="w-8 h-[2px] bg-[#35363c] rounded my-1"></div>
+    
+    <div id="btn-reload" title="Recarregar Chamada" class="w-12 h-12 bg-[#2b2d31] hover:bg-[#23a55a] text-[#23a55a] hover:text-white rounded-full hover:rounded-2xl flex items-center justify-center cursor-pointer transition-all">
+      <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+    </div>
+
+    <div class="mt-auto w-12 h-12 bg-[#2b2d31] hover:bg-[var(--discord-red)] text-gray-400 hover:text-white rounded-full hover:rounded-2xl flex items-center justify-center cursor-pointer transition-all" id="nav-logout" title="Sair da Conta">
+      <i data-lucide="log-out" class="w-5 h-5"></i>
+    </div>
+  </aside>
+
+  <!-- ============================================== -->
+  <!-- 2. SEGUNDA BARRA LATERAL (CANAIS / AMIGOS DMs) -->
+  <!-- ============================================== -->
+  <aside id="sidebar-channels" class="w-64 bg-[var(--discord-sidebar)] flex flex-col justify-between flex-shrink-0 border-r border-[#111214] z-10 h-full transition-transform duration-300">
+    <!-- Bloco Dinâmico de Canais ou Lista de DMs -->
+    <div class="flex-1 flex flex-col overflow-y-auto">
+      
+      <!-- Visualização: Modo Servidor -->
+      <div id="sidebar-server-view" class="hidden flex-1 flex flex-col">
+        <div class="h-14 px-4 flex items-center justify-between font-extrabold text-white shadow-md bg-gradient-to-r from-[#1e1f22] to-[#2b2d31] shrink-0">
+          <span class="truncate tracking-wide">VOICE SERVERS</span>
+        </div>
+        <div class="p-3 space-y-2 mt-2">
+          <div class="text-[11px] font-bold text-[#949ba4] px-2 tracking-widest uppercase">Servidor Atual</div>
+          <div id="btn-show-server-modal" class="flex items-center gap-2 px-2 py-2 rounded bg-gradient-to-r from-[#35373c] to-transparent text-white cursor-pointer border-l-2 border-[#5865f2]">
+            <i data-lucide="server" class="w-4 h-4 text-gray-300"></i>
+            <span class="text-sm font-semibold truncate" id="channel-name-display">Entrar em um canal</span>
+            <span id="badge-status" class="ml-auto text-[9px] bg-yellow-500 text-black px-2 py-0.5 rounded-full font-bold shadow-[0_0_5px_#eab308]">DESCONECTADO</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Visualização: Modo Amigos / DMs -->
+      <div id="sidebar-friends-view" class="flex-1 flex flex-col">
+        <div class="h-14 px-4 flex items-center justify-between font-extrabold text-white shadow-md bg-gradient-to-r from-[#1e1f22] to-[#2b2d31] shrink-0">
+          <span class="truncate tracking-wide">CONVERSAS</span>
+        </div>
+        <div class="p-2 space-y-1">
+          <button id="btn-sidebar-friends-tab" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-white bg-[#35373c]/50 hover:bg-[#35373c] font-bold text-sm text-left transition-colors">
+            <i data-lucide="users" class="w-4 h-4 text-[#949ba4]"></i>
+            Amigos
+          </button>
+          <div class="h-px bg-[#2b2d31] my-2 mx-2"></div>
+          <div class="text-[11px] font-bold text-[#949ba4] px-3 tracking-widest uppercase mb-1">Mensagens Diretas</div>
+          
+          <!-- Lista de DMs Recentes -->
+          <div id="recent-dms-list" class="space-y-1">
+            <!-- Amigos listados dinamicamente com bolinha de status -->
+            <p class="text-xs text-[#949ba4] px-3 py-2 italic">Nenhum amigo online</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Perfil do Usuário Logado -->
+    <div class="h-16 bg-[#111214] px-3 flex items-center justify-between shadow-[0_-5px_10px_rgba(0,0,0,0.2)] shrink-0">
       <div class="flex items-center gap-3 overflow-hidden">
         <div class="relative flex-shrink-0">
           <img id="avatar-img-preview" src="" class="w-9 h-9 rounded-full hidden object-cover border-2 border-[#2b2d31]" />
@@ -153,156 +259,228 @@
     </div>
   </aside>
 
-  <!-- 3. Área Principal -->
-  <main class="flex-1 flex flex-col relative overflow-hidden w-full bg-transparent">
-    <!-- Topbar -->
-    <header class="h-14 border-b border-[#1e1f22] px-3 md:px-5 flex items-center justify-between bg-[var(--discord-main)]/90 backdrop-blur-sm shadow-sm shrink-0 z-10">
-      <div class="flex items-center gap-3 min-w-0">
-        <button id="btn-open-sidebar" class="md:hidden p-1.5 hover:bg-[#35373c] rounded text-gray-400 shrink-0">
-            <i data-lucide="menu" class="w-6 h-6"></i>
-        </button>
-        <div class="p-1.5 bg-[#1e1f22] rounded-lg hidden md:block shrink-0">
-            <i data-lucide="hash" class="w-5 h-5 text-gray-400"></i>
+  <!-- ============================================== -->
+  <!-- 3. ÁREA DE CONTEÚDO PRINCIPAL                  -->
+  <!-- ============================================== -->
+  <main class="flex-1 flex flex-col relative overflow-hidden bg-transparent">
+    
+    <!-- A. VISUALIZAÇÃO: MODULO DE SERVIDORES (VOICE CALL) -->
+    <div id="main-server-module" class="hidden flex-1 flex flex-col overflow-hidden w-full">
+      <!-- Topbar do Servidor -->
+      <header class="h-14 border-b border-[#1e1f22] px-5 flex items-center justify-between bg-[var(--discord-main)]/90 backdrop-blur-sm shadow-sm shrink-0 z-10">
+        <div class="flex items-center gap-3 min-w-0">
+          <div class="p-1.5 bg-[#1e1f22] rounded-lg block shrink-0">
+              <i data-lucide="hash" class="w-5 h-5 text-gray-400"></i>
+          </div>
+          <span class="font-bold text-white text-[15px] truncate" id="room-title">Canal: Escolha um servidor</span>
         </div>
-        <span class="font-bold text-white text-[15px] truncate" id="room-title">Canal: Carregando...</span>
+        <div class="flex gap-3 shrink-0 ml-2">
+            <button id="btn-toggle-chat" class="flex items-center justify-center px-3 py-1.5 bg-[#1e1f22] hover:bg-[#35373c] text-white text-xs font-bold rounded-lg transition shadow-md">
+                <i data-lucide="message-square" class="w-4 h-4 md:mr-1.5 text-[#5865f2]"></i>
+                <span class="hidden md:inline">Chat</span>
+            </button>
+            <button id="btn-copy-link" class="flex items-center justify-center px-3 py-1.5 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold rounded-lg transition shadow-md glow-hover">
+              <i data-lucide="user-plus" class="w-4 h-4 md:mr-1.5"></i>
+              <span class="hidden md:inline">Copiar Convite</span>
+            </button>
+        </div>
+      </header>
+
+      <!-- Vídeos + Chat Lado a Lado -->
+      <div class="flex-1 flex overflow-hidden w-full relative bg-transparent">
+          <div id="videos-grid" class="flex-1 p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 overflow-y-auto auto-rows-fr transition-all duration-300">
+            <!-- Inseridos dinamicamente -->
+          </div>
+
+          <!-- Chat Lateral do Servidor -->
+          <aside id="chat-panel" class="w-80 bg-[var(--discord-sidebar)] border-l border-[#111214] flex flex-col h-full transform translate-x-full transition-transform duration-300 absolute right-0 z-20 sm:relative sm:translate-x-0 hidden shadow-2xl">
+              <div class="h-14 border-b border-[#111214] px-4 flex items-center justify-between shrink-0 bg-[#2b2d31]">
+                  <div class="flex items-center gap-2 text-white font-bold text-sm tracking-wide">
+                      <i data-lucide="hash" class="w-5 h-5 text-[#949ba4]"></i>
+                      bate-papo
+                  </div>
+                  <button id="btn-close-chat" class="p-1.5 hover:bg-[#35373c] rounded-md text-gray-400 sm:hidden transition">
+                      <i data-lucide="x" class="w-5 h-5"></i>
+                  </button>
+              </div>
+              
+              <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-5 scroll-smooth">
+                  <div class="text-center bg-[#1e1f22] p-4 rounded-xl border border-[#35373c] mt-2">
+                      <h3 class="text-white font-bold text-sm mb-1">Bem-vindo ao Chat do Servidor!</h3>
+                      <p class="text-xs text-gray-400">Mensagens persistentes salvas via Firestore.</p>
+                  </div>
+              </div>
+
+              <div class="p-4 bg-[#2b2d31] shrink-0 border-t border-[#1e1f22]">
+                  <div class="relative bg-[#383a40] rounded-xl p-1 flex items-center shadow-inner border border-transparent focus-within:border-[#5865f2] transition-colors">
+                      <input id="chat-input" type="text" placeholder="Conversar no canal..." class="flex-1 bg-transparent border-none text-sm text-white focus:outline-none px-3 py-2 placeholder-[#949ba4]" />
+                      <button id="btn-send-msg" class="p-2 text-[#5865f2] hover:text-[#7983f5] transition bg-[#2b2d31] rounded-lg shadow-sm mr-1">
+                          <i data-lucide="send" class="w-4 h-4"></i>
+                      </button>
+                  </div>
+              </div>
+          </aside>
       </div>
-      <div class="flex gap-3 shrink-0 ml-2">
-          <button id="btn-toggle-chat" class="flex items-center justify-center px-3 py-1.5 bg-[#1e1f22] hover:bg-[#35373c] text-white text-xs font-bold rounded-lg transition shadow-md">
-              <i data-lucide="message-square" class="w-4 h-4 md:mr-1.5 text-[#5865f2]"></i>
-              <span class="hidden md:inline">Chat</span>
-          </button>
-          <button id="btn-copy-link" class="flex items-center justify-center px-3 py-1.5 bg-[#5865f2] hover:bg-[#4752c4] text-white text-xs font-bold rounded-lg transition shadow-md glow-hover">
-            <i data-lucide="user-plus" class="w-4 h-4 md:mr-1.5"></i>
-            <span class="hidden md:inline">Copiar Convite</span>
-          </button>
-      </div>
-    </header>
 
-    <!-- Modal Inicial -->
-    <div id="join-modal" class="absolute inset-0 bg-black/80 backdrop-blur-lg z-40 flex items-center justify-center p-4 overflow-y-auto">
-      <div class="bg-[var(--discord-main)] border border-[#1e1f22] w-full max-w-md p-6 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] text-center flex flex-col my-auto">
-        
-        <!-- Tabs -->
-        <div class="flex bg-[#1e1f22] rounded-lg p-1 mb-6">
-           <button id="tab-join" class="flex-1 py-2 text-sm font-bold text-white bg-[#5865f2] rounded-md transition-all shadow">Entrar no Servidor</button>
-           <button id="tab-create" class="flex-1 py-2 text-sm font-bold text-[#949ba4] hover:text-white transition-all">Criar Servidor</button>
+      <!-- Footer Call Controls -->
+      <footer class="h-24 bg-[var(--discord-darkest)] flex items-center justify-between px-6 shrink-0 border-t border-[#1e1f22]">
+        <div class="flex items-center text-[#949ba4] text-xs font-semibold gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4 text-[#23a55a]"></i>
+          Modo Call de Voz
+        </div>
+        <div class="flex items-center gap-4">
+          <button id="ctrl-mic" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#35373c] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl group">
+            <i data-lucide="mic" id="main-mic-icon" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
+          </button>
+          <button id="ctrl-cam" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#35373c] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl group">
+            <i data-lucide="video" id="main-video-icon" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
+          </button>
+          <button id="ctrl-screen" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#5865f2] text-white hidden sm:flex items-center justify-center transition-all shadow-lg hover:shadow-xl group">
+            <i data-lucide="monitor-up" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
+          </button>
+          <button id="ctrl-gamer" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-[#8a2be2] to-[#b05cff] text-white hidden sm:flex items-center justify-center transition-all shadow-md group">
+            <i data-lucide="gamepad-2" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
+          </button>
+          <div class="w-px h-8 bg-[#35373c] mx-1"></div>
+          <button id="ctrl-leave" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#da373a] hover:bg-[#c92b2d] text-white flex items-center justify-center transition-all group animate-pulse">
+            <i data-lucide="phone-off" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 text-[#949ba4] text-xs font-semibold">
+          WebRTC HD
+        </div>
+      </footer>
+    </div>
+
+    <!-- B. VISUALIZAÇÃO: DASHBOARD DE AMIGOS -->
+    <div id="main-friends-dashboard" class="flex-1 flex flex-col overflow-hidden w-full bg-[var(--discord-main)]">
+      <!-- Topbar do Dashboard de Amigos -->
+      <header class="h-14 border-b border-[#1e1f22] px-5 flex items-center justify-between bg-[var(--discord-main)]/90 backdrop-blur-sm shadow-sm shrink-0 z-10">
+        <div class="flex items-center gap-6 min-w-0">
+          <div class="flex items-center gap-2 font-bold text-white text-[15px] border-r border-[#3f4147] pr-6">
+            <i data-lucide="users" class="w-5 h-5 text-gray-400"></i>
+            <span>Amigos</span>
+          </div>
+          <!-- Sub-abas -->
+          <div class="flex gap-2">
+            <button id="tab-friends-online" class="px-3 py-1.5 text-sm font-bold text-white bg-[#3f4147] rounded-lg transition">Disponíveis</button>
+            <button id="tab-friends-all" class="px-3 py-1.5 text-sm font-bold text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded-lg transition">Todos</button>
+            <button id="tab-friends-pending" class="px-3 py-1.5 text-sm font-bold text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded-lg transition flex items-center gap-2">
+              Pendentes
+              <span id="pending-badge-count" class="hidden bg-[#da373a] text-white text-[10px] px-1.5 py-0.5 rounded-full font-extrabold">0</span>
+            </button>
+            <button id="tab-friends-add" class="px-3 py-1.5 text-sm font-bold text-white bg-[#23a55a] rounded-lg transition hover:bg-[#1a7f45]">Adicionar Amigo</button>
+          </div>
+        </div>
+      </header>
+
+      <!-- Conteúdo das Abas do Dashboard -->
+      <div class="flex-1 p-6 overflow-y-auto w-full">
+        <!-- Aba: Adicionar Amigo -->
+        <div id="pane-add-friend" class="hidden max-w-xl">
+          <h3 class="text-white font-extrabold text-lg mb-1 uppercase tracking-wide">Adicionar Amigo</h3>
+          <p class="text-xs text-[#949ba4] mb-4">Você pode adicionar amigos enviando um convite para o e-mail cadastrado deles.</p>
+          <div class="flex bg-[#1e1f22] p-2.5 rounded-xl border border-[#111214] focus-within:border-[#5865f2] transition-all gap-2 items-center">
+            <input id="input-add-friend-email" type="email" placeholder="Digite o e-mail do seu amigo..." class="flex-1 bg-transparent border-none text-white text-sm focus:outline-none px-2" />
+            <button id="btn-submit-friend-request" class="bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold text-xs px-5 py-2.5 rounded-lg transition">Enviar Convite</button>
+          </div>
+          <p id="msg-add-friend-status" class="text-xs mt-3 hidden font-medium"></p>
         </div>
 
-        <div class="w-16 h-16 bg-gradient-to-br from-[#5865f2] to-[#7983f5] rounded-3xl mx-auto flex items-center justify-center text-white mb-4 shadow-[0_0_20px_rgba(88,101,242,0.4)] transform -rotate-6 shrink-0">
-          <i data-lucide="headset" class="w-8 h-8"></i>
+        <!-- Abas de Listagem: Disponíveis / Todos -->
+        <div id="pane-friends-list" class="space-y-4">
+          <h4 id="friends-list-header" class="text-xs font-bold text-[#949ba4] uppercase tracking-wider">Amigos Disponíveis</h4>
+          <div id="friends-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Amigos injetados por script -->
+          </div>
         </div>
-        <h2 id="modal-title" class="text-2xl font-extrabold text-white mb-1">Entrar no QG</h2>
-        <p id="modal-desc" class="text-sm text-[#949ba4] mb-6 font-medium">Use o Token de convite para conectar à call.</p>
 
-        <div class="space-y-4 text-left">
-          <div>
-            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Seu Nickname *</label>
-            <input id="input-username" type="text" placeholder="Ex: Iago" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
+        <!-- Aba: Pendentes -->
+        <div id="pane-pending-list" class="hidden space-y-4">
+          <h4 class="text-xs font-bold text-[#949ba4] uppercase tracking-wider">Solicitações de Amizade</h4>
+          <div id="pending-list-container" class="space-y-2">
+            <!-- Solicitações injetadas por script -->
           </div>
-          <div>
-            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">URL do Avatar (Opcional)</label>
-            <input id="input-avatar" type="text" placeholder="Link da imagem..." class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors" />
-          </div>
-          
-          <div id="box-token">
-            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5 flex justify-between">
-              <span>Token do Servidor *</span>
-              <span class="text-[10px] text-[#5865f2] font-normal lowercase bg-[#5865f2]/10 px-2 py-0.5 rounded">Requerido</span>
-            </label>
-            <input id="input-room" type="text" placeholder="Ex: A7X9-B2K1" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-[#23a55a] font-bold rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors uppercase tracking-widest text-center" />
-          </div>
-
-          <div id="box-create" class="hidden">
-            <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Nome do Novo Servidor *</label>
-            <input id="input-new-room" type="text" placeholder="Ex: Resenha de Sábado" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#23a55a] transition-colors" />
-          </div>
-
-          <button id="btn-action" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg glow-hover scale-100 hover:scale-[1.02]">
-            Conectar à Call
-          </button>
         </div>
       </div>
     </div>
 
-    <!-- Área de Conteúdo (Vídeos + Chat) -->
-    <div class="flex-1 flex overflow-hidden w-full relative">
-        <!-- Grid dos Vídeos -->
-        <div id="videos-grid" class="flex-1 p-3 md:p-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 overflow-y-auto auto-rows-fr transition-all duration-300">
-          <!-- Cards de vídeo inseridos dinamicamente -->
+    <!-- C. VISUALIZAÇÃO: CHAT PRIVADO DE DMs (DIRECT MESSAGES) -->
+    <div id="main-dm-chat-module" class="hidden flex-1 flex flex-col overflow-hidden w-full bg-[var(--discord-main)]">
+      <!-- Topbar do Chat Privado -->
+      <header class="h-14 border-b border-[#1e1f22] px-5 flex items-center bg-[var(--discord-main)]/90 backdrop-blur-sm shadow-sm shrink-0 z-10">
+        <div class="flex items-center gap-3">
+          <i data-lucide="at-sign" class="w-5 h-5 text-gray-400"></i>
+          <span class="font-extrabold text-white text-md" id="dm-partner-name">Amigo</span>
+          <div id="dm-partner-status-dot" class="w-2.5 h-2.5 rounded-full bg-gray-500 border border-[#2b2d31]"></div>
+          <span id="dm-partner-status-text" class="text-xs text-[#949ba4] font-medium">Offline</span>
         </div>
+      </header>
 
-        <!-- Chat Lateral -->
-        <aside id="chat-panel" class="w-full sm:w-80 bg-[var(--discord-sidebar)] border-l border-[#111214] flex flex-col h-full transform translate-x-full transition-transform duration-300 absolute right-0 z-20 sm:relative sm:translate-x-0 hidden shadow-2xl">
-            <div class="h-14 border-b border-[#111214] px-4 flex items-center justify-between shrink-0 bg-[#2b2d31]">
-                <div class="flex items-center gap-2 text-white font-bold text-sm tracking-wide">
-                    <i data-lucide="hash" class="w-5 h-5 text-[#949ba4]"></i>
-                    bate-papo
-                </div>
-                <button id="btn-close-chat" class="p-1.5 hover:bg-[#35373c] rounded-md text-gray-400 sm:hidden transition">
-                    <i data-lucide="x" class="w-5 h-5"></i>
-                </button>
-            </div>
-            
-            <div id="chat-messages" class="flex-1 p-4 overflow-y-auto space-y-5 scroll-smooth">
-                <div class="text-center bg-[#1e1f22] p-4 rounded-xl border border-[#35373c] mt-2">
-                    <h3 class="text-white font-bold text-sm mb-1">Bem-vindo ao Servidor!</h3>
-                    <p class="text-xs text-gray-400">Este chat agora é salvo na nuvem pelo Firebase.</p>
-                </div>
-            </div>
+      <!-- Mensagens da DM -->
+      <div id="dm-messages-container" class="flex-1 p-6 overflow-y-auto space-y-5 scroll-smooth">
+        <!-- Injetadas por script -->
+      </div>
 
-            <div class="p-4 bg-[#2b2d31] shrink-0 border-t border-[#1e1f22]">
-                <div class="relative bg-[#383a40] rounded-xl p-1 flex items-center shadow-inner border border-transparent focus-within:border-[#5865f2] transition-colors">
-                    <input id="chat-input" type="text" placeholder="Conversar na sala..." class="flex-1 bg-transparent border-none text-sm text-white focus:outline-none px-3 py-2 placeholder-[#949ba4]" />
-                    <button id="btn-send-msg" class="p-2 text-[#5865f2] hover:text-[#7983f5] transition bg-[#2b2d31] rounded-lg shadow-sm mr-1">
-                        <i data-lucide="send" class="w-4 h-4"></i>
-                    </button>
-                </div>
-            </div>
-        </aside>
+      <!-- Barra de Mensagem da DM -->
+      <div class="p-4 bg-[var(--discord-main)] shrink-0 border-t border-[#1e1f22]">
+        <div class="relative bg-[#383a40] rounded-xl p-1 flex items-center shadow-inner border border-transparent focus-within:border-[#5865f2] transition-colors">
+            <input id="dm-chat-input" type="text" placeholder="Escrever mensagem privada..." class="flex-1 bg-transparent border-none text-sm text-white focus:outline-none px-3 py-2.5 placeholder-[#949ba4]" />
+            <button id="btn-send-dm-msg" class="p-2.5 text-[#5865f2] hover:text-[#7983f5] transition bg-[#2b2d31] rounded-lg shadow-sm mr-1">
+                <i data-lucide="send" class="w-4 h-4"></i>
+            </button>
+        </div>
+      </div>
     </div>
 
-    <!-- Barra de Controles Inferior -->
-    <footer class="h-24 bg-[var(--discord-darkest)] flex flex-col md:flex-row items-center justify-center md:justify-between px-6 shrink-0 z-10 relative border-t border-[#1e1f22]">
-      
-      <div class="hidden md:flex w-1/3 items-center text-[#949ba4] text-xs font-semibold gap-2">
-        <i data-lucide="shield-check" class="w-4 h-4 text-[#23a55a]"></i>
-        Firebase + WebRTC
-      </div>
-
-      <!-- Controles Centrais -->
-      <div class="flex items-center gap-3 md:gap-5 w-full md:w-1/3 justify-center">
-        <button id="ctrl-mic" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#35373c] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl group">
-          <i data-lucide="mic" id="main-mic-icon" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
-        </button>
-        <button id="ctrl-cam" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#35373c] text-white flex items-center justify-center transition-all shadow-lg hover:shadow-xl group">
-          <i data-lucide="video" id="main-video-icon" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
-        </button>
-        <button id="ctrl-screen" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#2b2d31] hover:bg-[#5865f2] text-white hidden sm:flex items-center justify-center transition-all shadow-lg hover:shadow-xl group" title="Compartilhar Tela (Básico)">
-          <i data-lucide="monitor-up" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
-        </button>
-        <button id="ctrl-gamer" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-gradient-to-br from-[#8a2be2] to-[#b05cff] text-white hidden sm:flex items-center justify-center transition-all shadow-[0_0_15px_rgba(176,92,255,0.4)] glow-gamer group" title="Modo Gamer (60 FPS + Áudio Puro)">
-          <i data-lucide="gamepad-2" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
-        </button>
-        <div class="w-px h-8 bg-[#35373c] mx-1"></div>
-        <button id="ctrl-leave" class="w-12 h-12 md:w-14 md:h-14 rounded-full bg-[#da373a] hover:bg-[#c92b2d] text-white flex items-center justify-center transition-all shadow-[0_0_15px_rgba(218,55,58,0.4)] group">
-          <i data-lucide="phone-off" class="w-5 h-5 md:w-6 md:h-6 group-hover:scale-110 transition-transform"></i>
-        </button>
-      </div>
-
-      <div class="hidden md:flex w-1/3 justify-end text-[#949ba4] text-xs font-bold items-center gap-2">
-        Online e Seguro
-        <i data-lucide="zap" class="w-4 h-4 text-[#eebb19]"></i>
-      </div>
-    </footer>
   </main>
 
-  <!-- FIREBASE CONFIG AND SCRIPT LOGIC -->
-  <script type="module">
-    // Importações do Firebase SDK via CDN (ES Modules)
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+  <!-- ============================================== -->
+  <!-- MODAL DE CRIAR / ENTRAR EM SERVIDOR DE VOZ     -->
+  <!-- ============================================== -->
+  <div id="join-modal" class="hidden fixed inset-0 bg-black/80 backdrop-blur-md z-40 flex items-center justify-center p-4">
+    <div class="bg-[var(--discord-main)] border border-[#1e1f22] w-full max-w-md p-6 rounded-2xl shadow-2xl text-center flex flex-col relative">
+      <button id="btn-close-join-modal" class="absolute top-4 right-4 p-1 hover:bg-[#35373c] rounded text-gray-400">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
 
-    // Configuração do Firebase fornecida pelo usuário
+      <!-- Tabs -->
+      <div class="flex bg-[#1e1f22] rounded-lg p-1 mb-6">
+         <button id="tab-join" class="flex-1 py-2 text-sm font-bold text-white bg-[#5865f2] rounded-md transition-all shadow">Entrar no Canal</button>
+         <button id="tab-create" class="flex-1 py-2 text-sm font-bold text-[#949ba4] hover:text-white transition-all">Criar Servidor</button>
+      </div>
+
+      <div class="w-14 h-14 bg-gradient-to-br from-[#23a55a] to-[#5865f2] rounded-2xl mx-auto flex items-center justify-center text-white mb-4 shadow-lg transform -rotate-3 shrink-0">
+        <i data-lucide="hash" class="w-7 h-7"></i>
+      </div>
+      <h2 id="modal-title" class="text-xl font-extrabold text-white mb-1">Entrar no Canal de Voz</h2>
+      <p id="modal-desc" class="text-xs text-[#949ba4] mb-6 font-medium">Use o Token de convite para conectar ao canal.</p>
+
+      <div class="space-y-4 text-left">
+        <div id="box-token">
+          <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Token do Servidor *</label>
+          <input id="input-room" type="text" placeholder="Ex: A7X9-B2K1" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-[#23a55a] font-bold rounded-lg p-3 text-sm focus:outline-none focus:border-[#5865f2] transition-colors uppercase tracking-widest text-center" />
+        </div>
+
+        <div id="box-create" class="hidden">
+          <label class="text-xs font-bold text-[#b5bac1] uppercase tracking-wider block mb-1.5">Nome do Novo Servidor *</label>
+          <input id="input-new-room" type="text" placeholder="Ex: Resenha de Sábado" class="w-full bg-[#1e1f22] border-2 border-[#111214] text-white rounded-lg p-3 text-sm focus:outline-none focus:border-[#23a55a] transition-colors" />
+        </div>
+
+        <button id="btn-action" class="w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg">
+          Conectar à Call
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LÓGICA DO FIREBASE E PEERJS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-auth.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, doc, getDoc, setDoc, updateDoc, deleteDoc, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.9.0/firebase-firestore.js";
+
+    // Configurações do seu Firebase
     const firebaseConfig = {
       apiKey: "AIzaSyA4jp-qlPxC5BNkSGEdRKm6kSDVvov3kjs",
       authDomain: "lead-d586a.firebaseapp.com",
@@ -313,116 +491,745 @@
       measurementId: "G-RBCX7LPLL3"
     };
 
-    // Inicialização
     const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
     const db = getFirestore(app);
 
     lucide.createIcons();
 
-    // =========================
-    // Estado da aplicação
-    // =========================
+    // ==============================================
+    // ESTADOS GLOBAIS
+    // ==============================================
+    let currentUser = null; // Usuário logado
+    let currentLayoutMode = 'friends'; // 'friends' ou 'server'
+    let currentSubTab = 'online'; // 'online' | 'all' | 'pending' | 'add'
+    
+    // Estados do Servidor / WebRTC
     let localStream = null;
     let activeStream = null;
     let screenStream = null;
     let peer = null;
     let mqttClient = null;
-    let currentRoomToken = null; // Agora a sala é o Token!
+    let currentRoomToken = null;
     let currentRoomName = null;
     let myPeerId = null;
-    let myProfile = { name: 'Usuário', avatar: null };
     const calls = {};
-    const remoteProfiles = {}; 
-    const activeScreenShares = new Set(); 
+    const remoteProfiles = {};
+    const activeScreenShares = new Set();
     let isSharing = false;
     let isMuted = false;
     let isVideoOff = false;
     let mqttConnected = false;
 
-    // Utilitário global para o HTML
-    document.getElementById('btn-reload').onclick = () => location.reload();
+    // Estados de Amigos e Chat Privado
+    let activeDmChatId = null;
+    let activeDmFriendUid = null;
+    let activeDmFriendProfile = null;
+    let unsubscribeDmListener = null;
+    let friendsRealtimeListeners = {}; // Armazena observadores de status em tempo real de amigos
 
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('room')) {
-      document.getElementById('input-room').value = urlParams.get('room');
-    }
+    // ==============================================
+    // CONTROLE DE NAVEGAÇÃO / SIDEBAR
+    // ==============================================
+    const navFriends = document.getElementById('nav-friends');
+    const navServer = document.getElementById('nav-server');
+    const sidebarServerView = document.getElementById('sidebar-server-view');
+    const sidebarFriendsView = document.getElementById('sidebar-friends-view');
+    const mainServerModule = document.getElementById('main-server-module');
+    const mainFriendsDashboard = document.getElementById('main-friends-dashboard');
+    const mainDmChatModule = document.getElementById('main-dm-chat-module');
 
-    // =========================
-    // Sidebar / Chat Toggle
-    // =========================
-    const sidebarChannels = document.getElementById('sidebar-channels');
-    document.getElementById('btn-open-sidebar').addEventListener('click', () => {
-      sidebarChannels.classList.remove('-translate-x-full');
-      sidebarChannels.classList.add('translate-x-0', 'absolute');
-    });
-    document.getElementById('btn-close-sidebar').addEventListener('click', () => {
-      sidebarChannels.classList.add('-translate-x-full');
-      sidebarChannels.classList.remove('translate-x-0');
-    });
-    if (window.innerWidth < 768) {
-      sidebarChannels.classList.add('-translate-x-full');
-    }
-
-    const chatPanel = document.getElementById('chat-panel');
-    let isChatOpen = false;
-
-    function toggleChat() {
-      isChatOpen = !isChatOpen;
-      if (isChatOpen) {
-        chatPanel.classList.remove('hidden');
-        setTimeout(() => chatPanel.classList.remove('translate-x-full'), 10);
-      } else {
-        chatPanel.classList.add('translate-x-full');
-        setTimeout(() => chatPanel.classList.add('hidden'), 300);
-      }
-    }
-
-    document.getElementById('btn-toggle-chat').addEventListener('click', toggleChat);
-    document.getElementById('btn-close-chat').addEventListener('click', toggleChat);
-
-    // =========================
-    // Utilidades UI
-    // =========================
-    function setStatus(text, color = 'yellow') {
-      const badge = document.getElementById('badge-status');
-      const dot = document.getElementById('status-indicator-dot');
-      const statusText = document.getElementById('display-status-text');
-
-      const colors = { yellow: '#eab308', green: '#23a55a', red: '#da373a' };
-
-      badge.innerText = text;
-      badge.style.backgroundColor = colors[color] || colors.yellow;
-      badge.style.color = color === 'yellow' ? '#000' : '#fff';
-
-      dot.style.backgroundColor = colors[color] || colors.yellow;
-      statusText.innerText = text === 'ONLINE' ? 'Conectado' : text;
-      statusText.style.color = colors[color] || colors.yellow;
-    }
-
-    function isSecureEnoughForMedia() {
-      return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-    }
-
-    function getCurrentAudioTrack() { return localStream?.getAudioTracks()?.[0] || null; }
-    function getCurrentVideoTrack() { return localStream?.getVideoTracks()?.[0] || null; }
-
-    function updateGridLayout() {
-      const grid = document.getElementById('videos-grid');
-      if (!grid) return;
-      const hasPinned = grid.querySelector('.video-pinned');
+    function switchLayout(mode) {
+      currentLayoutMode = mode;
       
-      if (hasPinned) {
-        grid.classList.add('has-pinned');
-        grid.classList.remove('auto-rows-fr');
+      // Update Active Navigation State Visuals
+      navFriends.className = `w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:rounded-xl hover:scale-105 transition-all ${mode === 'friends' ? 'bg-[#5865f2] text-white rounded-2xl shadow-[0_0_15px_rgba(88,101,242,0.5)]' : 'bg-[#2b2d31] text-[#b5bac1]'}`;
+      navServer.className = `w-12 h-12 rounded-full flex items-center justify-center cursor-pointer hover:rounded-xl hover:scale-105 transition-all ${mode === 'server' ? 'bg-[#23a55a] text-white rounded-2xl shadow-[0_0_15px_rgba(35,165,90,0.5)]' : 'bg-[#2b2d31] text-[#b5bac1]'}`;
+
+      if (mode === 'friends') {
+        sidebarServerView.classList.add('hidden');
+        sidebarFriendsView.classList.remove('hidden');
+        mainServerModule.classList.add('hidden');
+        
+        if (activeDmChatId) {
+          mainDmChatModule.classList.remove('hidden');
+          mainFriendsDashboard.classList.add('hidden');
+        } else {
+          mainDmChatModule.classList.add('hidden');
+          mainFriendsDashboard.classList.remove('hidden');
+        }
       } else {
-        grid.classList.remove('has-pinned');
-        grid.classList.add('auto-rows-fr');
+        sidebarServerView.classList.remove('hidden');
+        sidebarFriendsView.classList.add('hidden');
+        mainServerModule.classList.remove('hidden');
+        mainFriendsDashboard.classList.add('hidden');
+        mainDmChatModule.classList.add('hidden');
       }
     }
 
-    // =========================
-    // Modal de Entrada (Firebase)
-    // =========================
+    navFriends.onclick = () => switchLayout('friends');
+    navServer.onclick = () => {
+      switchLayout('server');
+      if (!currentRoomToken) {
+        document.getElementById('join-modal').classList.remove('hidden');
+      }
+    };
+
+    // Sub-abas do Dashboard de Amigos
+    const tabOnline = document.getElementById('tab-friends-online');
+    const tabAll = document.getElementById('tab-friends-all');
+    const tabPending = document.getElementById('tab-friends-pending');
+    const tabAdd = document.getElementById('tab-friends-add');
+
+    const paneAddFriend = document.getElementById('pane-add-friend');
+    const paneFriendsList = document.getElementById('pane-friends-list');
+    const panePendingList = document.getElementById('pane-pending-list');
+
+    function switchSubTab(tab) {
+      currentSubTab = tab;
+      
+      // Resets classes
+      [tabOnline, tabAll, tabPending].forEach(btn => {
+        btn.className = "px-3 py-1.5 text-sm font-bold text-[#b5bac1] hover:text-white hover:bg-[#35373c] rounded-lg transition flex items-center gap-2";
+      });
+      tabAdd.className = "px-3 py-1.5 text-sm font-bold text-white bg-[#3f4147]/50 hover:bg-[#3f4147] rounded-lg transition";
+
+      paneAddFriend.classList.add('hidden');
+      paneFriendsList.classList.add('hidden');
+      panePendingList.classList.add('hidden');
+
+      if (tab === 'online') {
+        tabOnline.className = "px-3 py-1.5 text-sm font-bold text-white bg-[#3f4147] rounded-lg transition flex items-center gap-2";
+        paneFriendsList.classList.remove('hidden');
+        document.getElementById('friends-list-header').innerText = "Amigos Disponíveis";
+        renderFriendsList(true);
+      } else if (tab === 'all') {
+        tabAll.className = "px-3 py-1.5 text-sm font-bold text-white bg-[#3f4147] rounded-lg transition flex items-center gap-2";
+        paneFriendsList.classList.remove('hidden');
+        document.getElementById('friends-list-header').innerText = "Todos os Amigos";
+        renderFriendsList(false);
+      } else if (tab === 'pending') {
+        tabPending.className = "px-3 py-1.5 text-sm font-bold text-white bg-[#3f4147] rounded-lg transition flex items-center gap-2";
+        panePendingList.classList.remove('hidden');
+        renderPendingRequests();
+      } else if (tab === 'add') {
+        tabAdd.className = "px-3 py-1.5 text-sm font-bold text-white bg-[#23a55a] rounded-lg transition hover:bg-[#1a7f45]";
+        paneAddFriend.classList.remove('hidden');
+      }
+    }
+
+    tabOnline.onclick = () => switchSubTab('online');
+    tabAll.onclick = () => switchSubTab('all');
+    tabPending.onclick = () => switchSubTab('pending');
+    tabAdd.onclick = () => switchSubTab('add');
+
+    document.getElementById('btn-sidebar-friends-tab').onclick = () => {
+      activeDmChatId = null;
+      activeDmFriendUid = null;
+      switchLayout('friends');
+      switchSubTab('online');
+    };
+
+    // ==============================================
+    // CONTROLE DE AUTENTICAÇÃO (LOGIN / REGISTRO)
+    // ==============================================
+    const authScreen = document.getElementById('auth-screen');
+    const authLoginBox = document.getElementById('auth-login-box');
+    const authRegisterBox = document.getElementById('auth-register-box');
+    const btnSwitchToRegister = document.getElementById('btn-switch-to-register');
+    const btnSwitchToLogin = document.getElementById('btn-switch-to-login');
+
+    btnSwitchToRegister.onclick = () => {
+      authLoginBox.classList.add('hidden');
+      authRegisterBox.classList.remove('hidden');
+    };
+    btnSwitchToLogin.onclick = () => {
+      authRegisterBox.classList.add('hidden');
+      authLoginBox.classList.remove('hidden');
+    };
+
+    // Registro
+    document.getElementById('btn-register').onclick = async () => {
+      const name = document.getElementById('register-name').value.trim();
+      const email = document.getElementById('register-email').value.trim();
+      const password = document.getElementById('register-password').value;
+      const avatar = document.getElementById('register-avatar').value.trim();
+
+      if (!name || !email || !password) {
+        alert('Por favor, preencha todos os campos obrigatórios.');
+        return;
+      }
+
+      try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+        
+        await updateProfile(user, {
+          displayName: name,
+          photoURL: avatar || null
+        });
+
+        // Grava no Firestore do Usuário
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          name: name,
+          email: email.toLowerCase(),
+          avatar: avatar || null,
+          status: 'online',
+          lastActive: serverTimestamp()
+        });
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro no registro: ' + err.message);
+      }
+    };
+
+    // Login
+    document.getElementById('btn-login').onclick = async () => {
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-password').value;
+
+      if (!email || !password) {
+        alert('Por favor, preencha o e-mail e a senha.');
+        return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+      } catch (err) {
+        console.error(err);
+        alert('Erro no login: ' + err.message);
+      }
+    };
+
+    // Logout
+    document.getElementById('nav-logout').onclick = async () => {
+      if (confirm('Deseja realmente sair da conta?')) {
+        if (currentUser) {
+          // Atualiza status para offline
+          await updateDoc(doc(db, "users", currentUser.uid), { status: 'offline' });
+        }
+        await signOut(auth);
+        location.reload();
+      }
+    };
+
+    // Listener de Auth Principal
+    onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        currentUser = user;
+        authScreen.classList.add('hidden');
+        
+        // Atualiza status do banco de dados para online
+        await updateDoc(doc(db, "users", user.uid), {
+          status: 'online',
+          lastActive: serverTimestamp()
+        });
+
+        // Configura avatar e display no rodapé
+        document.getElementById('display-username').innerText = user.displayName || 'Usuário';
+        if (user.photoURL) {
+          document.getElementById('avatar-img-preview').src = user.photoURL;
+          document.getElementById('avatar-img-preview').classList.remove('hidden');
+          document.getElementById('avatar-initial-container').classList.add('hidden');
+        } else {
+          document.getElementById('avatar-img-preview').classList.add('hidden');
+          document.getElementById('avatar-initial-container').classList.remove('hidden');
+          document.getElementById('avatar-initial').innerText = (user.displayName || 'U').charAt(0).toUpperCase();
+        }
+        document.getElementById('display-status-text').innerText = "Disponível";
+        document.getElementById('status-indicator-dot').className = "w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-[#111214] absolute -bottom-0.5 -right-0.5";
+
+        // Inicializações em tempo real
+        initFriendsListListener();
+        initMqttSignalingOrTokenFromUrl();
+        
+      } else {
+        currentUser = null;
+        authScreen.classList.remove('hidden');
+      }
+    });
+
+    // Manutenção de status 'offline' ao fechar a aba
+    window.addEventListener('beforeunload', () => {
+      if (currentUser) {
+        updateDoc(doc(db, "users", currentUser.uid), { status: 'offline' });
+      }
+    });
+
+    // ==============================================
+    // LÓGICA DO SISTEMA DE AMIGOS
+    // ==============================================
+    let friendships = [];
+
+    // Busca amizades em tempo real
+    function initFriendsListListener() {
+      const friendsRef = collection(db, "users", currentUser.uid, "friends");
+      onSnapshot(friendsRef, (snapshot) => {
+        friendships = [];
+        let pendingCount = 0;
+        
+        snapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          const friendUid = docSnapshot.id;
+          friendships.push({ friendUid, ...data });
+
+          if (data.status === 'received') {
+            pendingCount++;
+          }
+        });
+
+        // Atualiza a notificação de pendentes
+        const badge = document.getElementById('pending-badge-count');
+        if (pendingCount > 0) {
+          badge.innerText = pendingCount;
+          badge.classList.remove('hidden');
+        } else {
+          badge.classList.add('hidden');
+        }
+
+        // Reconstrói listeners em tempo real para os perfis dos amigos
+        syncFriendsProfileListeners();
+      });
+    }
+
+    // Escuta e sincroniza dados detalhados (status online, avatar) de cada amigo
+    let friendsProfiles = {};
+    function syncFriendsProfileListeners() {
+      const activeUids = friendships.map(f => f.friendUid);
+
+      // Cancela listeners de quem não é mais amigo/solicitação
+      Object.keys(friendsRealtimeListeners).forEach(uid => {
+        if (!activeUids.includes(uid)) {
+          friendsRealtimeListeners[uid]();
+          delete friendsRealtimeListeners[uid];
+          delete friendsProfiles[uid];
+        }
+      });
+
+      // Cria listeners para novos UIDs
+      activeUids.forEach(uid => {
+        if (!friendsRealtimeListeners[uid]) {
+          friendsRealtimeListeners[uid] = onSnapshot(doc(db, "users", uid), (profileSnapshot) => {
+            if (profileSnapshot.exists()) {
+              friendsProfiles[uid] = profileSnapshot.data();
+              
+              // Se esta é a DM ativa que estamos visualizando, atualiza o cabeçalho
+              if (activeDmFriendUid === uid) {
+                 updateDmHeader(friendsProfiles[uid]);
+              }
+              
+              // Atualiza as listas na tela
+              if (currentLayoutMode === 'friends') {
+                if (currentSubTab === 'online' || currentSubTab === 'all') {
+                  renderFriendsList(currentSubTab === 'online');
+                } else if (currentSubTab === 'pending') {
+                  renderPendingRequests();
+                }
+              }
+              renderRecentDmsList();
+            }
+          });
+        }
+      });
+
+      // Caso inicial vazio
+      if (activeUids.length === 0) {
+        renderFriendsList(true);
+        renderRecentDmsList();
+      }
+    }
+
+    // Aba: Enviar convite de amizade
+    document.getElementById('btn-submit-friend-request').onclick = async () => {
+      const email = document.getElementById('input-add-friend-email').value.trim().toLowerCase();
+      const statusMsg = document.getElementById('msg-add-friend-status');
+
+      if (!email) return;
+      if (email === currentUser.email) {
+        showStatusMsg("Você não pode adicionar a si mesmo.", "red");
+        return;
+      }
+
+      statusMsg.classList.add('hidden');
+
+      try {
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          showStatusMsg("E-mail não encontrado no sistema.", "red");
+          return;
+        }
+
+        const friendDoc = querySnapshot.docs[0];
+        const friendUid = friendDoc.id;
+
+        // Grava no meu nó de amigos
+        await setDoc(doc(db, "users", currentUser.uid, "friends", friendUid), {
+          status: 'sent',
+          timestamp: serverTimestamp()
+        });
+
+        // Grava no nó do amigo
+        await setDoc(doc(db, "users", friendUid, "friends", currentUser.uid), {
+          status: 'received',
+          timestamp: serverTimestamp()
+        });
+
+        showStatusMsg("Convite de amizade enviado com sucesso!", "green");
+        document.getElementById('input-add-friend-email').value = '';
+
+      } catch (err) {
+        console.error(err);
+        showStatusMsg("Erro ao enviar convite.", "red");
+      }
+    };
+
+    function showStatusMsg(text, color) {
+      const msg = document.getElementById('msg-add-friend-status');
+      msg.innerText = text;
+      msg.className = `text-xs mt-3 block font-bold ${color === 'red' ? 'text-[var(--discord-red)]' : 'text-[var(--discord-green)]'}`;
+    }
+
+    // Ações de Amizade: Aceitar / Recusar / Remover
+    async function acceptFriendRequest(friendUid) {
+      await setDoc(doc(db, "users", currentUser.uid, "friends", friendUid), { status: 'accepted', timestamp: serverTimestamp() });
+      await setDoc(doc(db, "users", friendUid, "friends", currentUser.uid), { status: 'accepted', timestamp: serverTimestamp() });
+    }
+
+    async function removeFriendship(friendUid) {
+      if (confirm("Deseja realmente desfazer a amizade/solicitação?")) {
+        await deleteDoc(doc(db, "users", currentUser.uid, "friends", friendUid));
+        await deleteDoc(doc(db, "users", friendUid, "friends", currentUser.uid));
+        if (activeDmFriendUid === friendUid) {
+          activeDmChatId = null;
+          activeDmFriendUid = null;
+          switchLayout('friends');
+        }
+      }
+    }
+
+    // Renderiza lista de Amigos (Disponíveis ou Todos)
+    function renderFriendsList(onlyOnline = true) {
+      const container = document.getElementById('friends-list-container');
+      container.innerHTML = '';
+
+      const acceptedFriendships = friendships.filter(f => f.status === 'accepted');
+
+      let renderedCount = 0;
+
+      acceptedFriendships.forEach(friend => {
+        const profile = friendsProfiles[friend.friendUid];
+        if (!profile) return;
+
+        const isOnline = profile.status === 'online';
+        if (onlyOnline && !isOnline) return;
+
+        renderedCount++;
+
+        const card = document.createElement('div');
+        card.className = "bg-[#1e1f22] p-4 rounded-xl flex items-center justify-between border border-[#313338] hover:border-[#5865f2] transition group";
+        
+        const avatar = profile.avatar ? escapeAttribute(profile.avatar) : null;
+        const name = escapeHtml(profile.name || 'Amigo');
+        const statusText = isOnline ? 'Online' : 'Offline';
+        const dotColor = isOnline ? 'bg-green-500' : 'bg-gray-500';
+
+        const avatarHtml = avatar 
+          ? `<img src="${avatar}" class="w-10 h-10 rounded-full object-cover" />`
+          : `<div class="w-10 h-10 rounded-full bg-[#35373c] text-white flex items-center justify-center font-bold text-sm uppercase">${name.charAt(0)}</div>`;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              ${avatarHtml}
+              <div class="w-3.5 h-3.5 ${dotColor} rounded-full border-2 border-[#1e1f22] absolute -bottom-0.5 -right-0.5"></div>
+            </div>
+            <div class="leading-tight">
+              <div class="font-bold text-white text-sm">${name}</div>
+              <div class="text-[11px] text-[#949ba4] font-medium">${statusText}</div>
+            </div>
+          </div>
+          <div class="flex gap-2 font-medium text-xs">
+            <button class="btn-message p-2.5 bg-[#2b2d31] hover:bg-[#5865f2] hover:text-white rounded-lg text-[#b5bac1] transition" title="Enviar Mensagem">
+              <i data-lucide="message-square" class="w-4 h-4"></i>
+            </button>
+            <button class="btn-remove p-2.5 bg-[#2b2d31] hover:bg-[var(--discord-red)] hover:text-white rounded-lg text-[#b5bac1] transition" title="Remover Amigo">
+              <i data-lucide="user-x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+
+        card.querySelector('.btn-message').onclick = () => openDmChat(friend.friendUid, profile);
+        card.querySelector('.btn-remove').onclick = () => removeFriendship(friend.friendUid);
+
+        container.appendChild(card);
+      });
+
+      if (renderedCount === 0) {
+        container.innerHTML = `
+          <div class="col-span-full py-8 text-center bg-[#1e1f22] border border-dashed border-[#35373c] rounded-2xl">
+            <p class="text-sm text-[#949ba4] font-medium">Nenhum amigo encontrado aqui.</p>
+          </div>
+        `;
+      }
+
+      lucide.createIcons();
+    }
+
+    // Renderiza a aba de solicitações pendentes
+    function renderPendingRequests() {
+      const container = document.getElementById('pending-list-container');
+      container.innerHTML = '';
+
+      const pendingList = friendships.filter(f => f.status === 'received' || f.status === 'sent');
+
+      if (pendingList.length === 0) {
+        container.innerHTML = `
+          <div class="py-8 text-center bg-[#1e1f22] border border-dashed border-[#35373c] rounded-2xl">
+            <p class="text-sm text-[#949ba4]">Nenhuma solicitação pendente.</p>
+          </div>
+        `;
+        return;
+      }
+
+      pendingList.forEach(item => {
+        const profile = friendsProfiles[item.friendUid];
+        if (!profile) return;
+
+        const isIncoming = item.status === 'received';
+        const name = escapeHtml(profile.name || 'Usuário');
+        const email = escapeHtml(profile.email || '');
+        const avatar = profile.avatar ? escapeAttribute(profile.avatar) : null;
+
+        const avatarHtml = avatar 
+          ? `<img src="${avatar}" class="w-9 h-9 rounded-full object-cover" />`
+          : `<div class="w-9 h-9 rounded-full bg-[#35373c] text-white flex items-center justify-center font-bold text-xs uppercase">${name.charAt(0)}</div>`;
+
+        const row = document.createElement('div');
+        row.className = "bg-[#1e1f22] p-3 rounded-xl flex items-center justify-between border border-[#313338] transition";
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            ${avatarHtml}
+            <div class="leading-tight">
+              <div class="font-bold text-white text-sm flex items-center gap-1.5">
+                ${name} 
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-extrabold uppercase bg-black/30 text-gray-400">
+                  ${isIncoming ? 'Recebido' : 'Enviado'}
+                </span>
+              </div>
+              <div class="text-[11px] text-[#949ba4]">${email}</div>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            ${isIncoming ? `
+              <button class="btn-accept p-2 bg-[#23a55a] hover:bg-[#1a7f45] rounded-lg text-white transition" title="Aceitar">
+                <i data-lucide="check" class="w-4 h-4"></i>
+              </button>
+            ` : ''}
+            <button class="btn-cancel p-2 bg-[#2b2d31] hover:bg-[var(--discord-red)] rounded-lg text-gray-400 hover:text-white transition" title="${isIncoming ? 'Recusar' : 'Cancelar Solicitação'}">
+              <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+          </div>
+        `;
+
+        if (isIncoming) {
+          row.querySelector('.btn-accept').onclick = () => acceptFriendRequest(item.friendUid);
+        }
+        row.querySelector('.btn-cancel').onclick = () => removeFriendship(item.friendUid);
+
+        container.appendChild(row);
+      });
+
+      lucide.createIcons();
+    }
+
+    // Renderiza a lista de amigos/DMs do painel lateral esquerdo (Recent DMs)
+    function renderRecentDmsList() {
+      const container = document.getElementById('recent-dms-list');
+      container.innerHTML = '';
+
+      const acceptedFriends = friendships.filter(f => f.status === 'accepted');
+
+      if (acceptedFriends.length === 0) {
+        container.innerHTML = `<p class="text-xs text-[#949ba4] px-3 py-2 italic">Nenhum amigo adicionado.</p>`;
+        return;
+      }
+
+      acceptedFriends.forEach(friend => {
+        const profile = friendsProfiles[friend.friendUid];
+        if (!profile) return;
+
+        const isOnline = profile.status === 'online';
+        const name = escapeHtml(profile.name || 'Amigo');
+        const avatar = profile.avatar ? escapeAttribute(profile.avatar) : null;
+        const isCurrentActive = activeDmFriendUid === friend.friendUid;
+
+        const avatarHtml = avatar 
+          ? `<img src="${avatar}" class="w-8 h-8 rounded-full object-cover" />`
+          : `<div class="w-8 h-8 rounded-full bg-[#35373c] text-white flex items-center justify-center font-bold text-xs uppercase">${name.charAt(0)}</div>`;
+
+        const item = document.createElement('button');
+        item.className = `w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-left transition-colors font-semibold ${isCurrentActive ? 'bg-[#35373c] text-white shadow-sm' : 'text-[#949ba4] hover:bg-[#35373c]/40 hover:text-white'}`;
+        item.innerHTML = `
+          <div class="relative flex-shrink-0">
+            ${avatarHtml}
+            <div class="w-2.5 h-2.5 ${isOnline ? 'bg-green-500' : 'bg-gray-500'} rounded-full border border-[var(--discord-sidebar)] absolute -bottom-0.5 -right-0.5 animate-pulse"></div>
+          </div>
+          <span class="truncate flex-1">${name}</span>
+        `;
+
+        item.onclick = () => openDmChat(friend.friendUid, profile);
+        container.appendChild(item);
+      });
+    }
+
+    // ==============================================
+    // CHAT DE DMs (DIRECT MESSAGES)
+    // ==============================================
+    function openDmChat(friendUid, profile) {
+      activeDmFriendUid = friendUid;
+      activeDmFriendProfile = profile;
+      
+      // Gera o chatId determinístico
+      activeDmChatId = currentUser.uid < friendUid 
+        ? `${currentUser.uid}_${friendUid}`
+        : `${friendUid}_${currentUser.uid}`;
+
+      switchLayout('friends');
+      updateDmHeader(profile);
+      listenToDmChat();
+      renderRecentDmsList();
+    }
+
+    function updateDmHeader(profile) {
+      const nameElem = document.getElementById('dm-partner-name');
+      const dot = document.getElementById('dm-partner-status-dot');
+      const text = document.getElementById('dm-partner-status-text');
+
+      if (!nameElem) return;
+
+      nameElem.innerText = profile.name || 'Amigo';
+      const isOnline = profile.status === 'online';
+
+      dot.className = `w-2.5 h-2.5 rounded-full border border-[#2b2d31] ${isOnline ? 'bg-green-500' : 'bg-gray-500'}`;
+      text.innerText = isOnline ? 'Online' : 'Offline';
+    }
+
+    function listenToDmChat() {
+      // Limpa listener anterior se houver
+      if (unsubscribeDmListener) {
+        unsubscribeDmListener();
+      }
+
+      const container = document.getElementById('dm-messages-container');
+      container.innerHTML = `
+        <div class="text-center text-xs text-[#949ba4] py-8 font-medium">
+          Carregando mensagens da conversa privada...
+        </div>
+      `;
+
+      const messagesRef = collection(db, "chats", activeDmChatId, "messages");
+      const q = query(messagesRef, orderBy("timestamp", "asc"));
+
+      unsubscribeDmListener = onSnapshot(q, (snapshot) => {
+        container.innerHTML = '';
+        
+        if (snapshot.empty) {
+          container.innerHTML = `
+            <div class="text-center bg-[#1e1f22] p-6 rounded-2xl border border-[#35373c] max-w-sm mx-auto mt-6 shadow-md">
+              <h3 class="text-white font-bold text-sm mb-1">Início da Conversa!</h3>
+              <p class="text-xs text-gray-400">Esta conversa é totalmente privada. Diga oi para o seu amigo!</p>
+            </div>
+          `;
+          return;
+        }
+
+        snapshot.forEach((docSnapshot) => {
+          const data = docSnapshot.data();
+          const isMe = data.senderId === currentUser.uid;
+          const timestamp = data.timestamp ? data.timestamp.toDate() : new Date();
+
+          appendDmMessage(data, timestamp, isMe);
+        });
+
+        container.scrollTop = container.scrollHeight;
+      });
+    }
+
+    function appendDmMessage(data, dateObj, isMe) {
+      const container = document.getElementById('dm-messages-container');
+      
+      const msgDiv = document.createElement('div');
+      msgDiv.className = 'flex gap-3 hover:bg-[#35373c] group transition-colors rounded-xl p-2 -mx-2';
+      
+      const avatar = data.avatar ? escapeAttribute(data.avatar) : null;
+      const safeName = escapeHtml(data.senderName || 'Amigo');
+      const safeText = escapeHtml(data.text || '');
+
+      const avatarHtml = avatar
+        ? `<img src="${avatar}" class="w-10 h-10 rounded-full mt-0.5 object-cover flex-shrink-0 border border-[#1e1f22]" />`
+        : `<div class="w-10 h-10 rounded-full mt-0.5 bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-white font-bold flex-shrink-0 border border-[#1e1f22]">${safeName.charAt(0).toUpperCase()}</div>`;
+
+      const time = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      const formattedText = safeText.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00a8fc] hover:underline">$1</a>');
+
+      msgDiv.innerHTML = `
+        ${avatarHtml}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-baseline gap-2 mb-0.5">
+            <span class="font-extrabold text-[13px] ${isMe ? 'text-[#23a55a]' : 'text-white'}">${safeName}</span>
+            <span class="text-[10px] text-[#949ba4] font-medium">${time}</span>
+          </div>
+          <div class="text-[13px] text-[#dbdee1] break-words whitespace-pre-wrap leading-relaxed">${formattedText}</div>
+        </div>
+      `;
+
+      container.appendChild(msgDiv);
+    }
+
+    async function sendDmMessage() {
+      const input = document.getElementById('dm-chat-input');
+      const text = input.value.trim();
+      if (!text || !activeDmChatId) return;
+
+      try {
+        const messagesRef = collection(db, "chats", activeDmChatId, "messages");
+        await addDoc(messagesRef, {
+          text: text,
+          senderId: currentUser.uid,
+          senderName: currentUser.displayName,
+          avatar: currentUser.photoURL || null,
+          timestamp: serverTimestamp()
+        });
+
+        input.value = '';
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao enviar mensagem.');
+      }
+    }
+
+    document.getElementById('btn-send-dm-msg').onclick = sendDmMessage;
+    document.getElementById('dm-chat-input').onkeypress = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); sendDmMessage(); }
+    };
+
+
+    // ==============================================
+    // SERVIDORES / CHAMADA DE VOZ (WEBRTC LOBBY)
+    // ==============================================
+    const btnShowServerModal = document.getElementById('btn-show-server-modal');
+    const joinModal = document.getElementById('join-modal');
+    const btnCloseJoinModal = document.getElementById('btn-close-join-modal');
+
+    btnShowServerModal.onclick = () => joinModal.classList.remove('hidden');
+    btnCloseJoinModal.onclick = () => joinModal.classList.add('hidden');
+
+    // Mudar Tab do Servidor Modal
     const tabJoin = document.getElementById('tab-join');
     const tabCreate = document.getElementById('tab-create');
     const boxToken = document.getElementById('box-token');
@@ -432,15 +1239,6 @@
     const modalDesc = document.getElementById('modal-desc');
     let isCreateMode = false;
 
-    function generateToken() {
-      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      let token = '';
-      for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
-      token += '-';
-      for(let i=0; i<4; i++) token += chars.charAt(Math.floor(Math.random() * chars.length));
-      return token;
-    }
-
     tabJoin.onclick = () => {
        isCreateMode = false;
        tabJoin.className = "flex-1 py-2 text-sm font-bold text-white bg-[#5865f2] rounded-md transition-all shadow";
@@ -448,9 +1246,9 @@
        boxToken.classList.remove('hidden');
        boxCreate.classList.add('hidden');
        btnAction.innerText = "Conectar à Call";
-       btnAction.className = "w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg glow-hover scale-100 hover:scale-[1.02]";
-       modalTitle.innerText = "Entrar no QG";
-       modalDesc.innerText = "Use o Token de convite para conectar à call.";
+       btnAction.className = "w-full bg-[#5865f2] hover:bg-[#4752c4] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg";
+       modalTitle.innerText = "Entrar no Canal de Voz";
+       modalDesc.innerText = "Use o Token de convite para conectar ao canal.";
     };
 
     tabCreate.onclick = () => {
@@ -459,29 +1257,20 @@
        tabJoin.className = "flex-1 py-2 text-sm font-bold text-[#949ba4] hover:text-white transition-all";
        boxCreate.classList.remove('hidden');
        boxToken.classList.add('hidden');
-       btnAction.innerText = "Gerar Servidor & Entrar";
-       btnAction.className = "w-full bg-[#23a55a] hover:bg-[#1a7f45] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg shadow-[#23a55a]/30 scale-100 hover:scale-[1.02]";
-       modalTitle.innerText = "Criar Servidor";
-       modalDesc.innerText = "Crie um novo servidor e ganhe um token para convidar amigos.";
+       btnAction.innerText = "Criar Servidor & Entrar";
+       btnAction.className = "w-full bg-[#23a55a] hover:bg-[#1a7f45] text-white font-bold py-3.5 rounded-lg text-sm transition-all mt-6 shadow-lg";
+       modalTitle.innerText = "Criar Servidor de Voz";
+       modalDesc.innerText = "Crie um novo canal de voz com convites por Token.";
     };
 
-    btnAction.addEventListener('click', async () => {
-      const usernameInput = document.getElementById('input-username').value.trim();
-      const avatarInput = document.getElementById('input-avatar').value.trim();
-
-      if (!usernameInput) {
-        alert('Preencha seu nome!');
-        return;
-      }
-
-      if (!isSecureEnoughForMedia()) {
-        alert('O navegador bloqueou câmera/microfone por segurança. Use HTTPS ou localhost.');
-        return;
+    btnAction.onclick = async () => {
+      if (!localStream) {
+        await requestCameraAndMicrophone();
       }
 
       btnAction.disabled = true;
       const originalText = btnAction.innerText;
-      btnAction.innerText = "Conectando ao banco de dados...";
+      btnAction.innerText = "Conectando...";
 
       try {
         let roomToken = '';
@@ -490,213 +1279,124 @@
         if (isCreateMode) {
           roomName = document.getElementById('input-new-room').value.trim();
           if (!roomName) throw new Error("Preencha o nome do servidor.");
-          
           roomToken = generateToken();
           
-          // Salva novo Servidor no Firestore
           await setDoc(doc(db, "rooms", roomToken), {
             name: roomName,
             createdAt: serverTimestamp(),
-            createdBy: usernameInput
+            createdBy: currentUser.uid
           });
           
-          alert(`🎉 Servidor Criado com Sucesso!\n\nSeu Token de convite é:\n${roomToken}\n\nCopie e envie para seus amigos!`);
+          alert(`🎉 Servidor Criado!\n\nToken do Canal:\n${roomToken}`);
         } else {
           roomToken = document.getElementById('input-room').value.trim().toUpperCase();
-          if (!roomToken) throw new Error("Preencha o Token do servidor.");
+          if (!roomToken) throw new Error("Preencha o Token.");
           
-          // Valida Servidor no Firestore
           const roomDoc = await getDoc(doc(db, "rooms", roomToken));
-          if (!roomDoc.exists()) {
-             throw new Error(`Servidor não encontrado. O token "${roomToken}" é inválido.`);
-          }
+          if (!roomDoc.exists()) throw new Error(`O token "${roomToken}" é inválido.`);
           roomName = roomDoc.data().name;
         }
 
-        // Definir estado global
-        myProfile.name = usernameInput;
-        myProfile.avatar = avatarInput !== "" ? avatarInput : null;
+        // Define Estados
         currentRoomToken = roomToken;
         currentRoomName = roomName;
 
-        // Atualizar UI
-        document.getElementById('display-username').innerText = myProfile.name;
+        // UI Updates
         document.getElementById('room-title').innerText = `${roomName} (Token: ${roomToken})`;
         document.getElementById('channel-name-display').innerText = roomName;
-        window.history.pushState({}, '', `?room=${roomToken}`);
+        document.getElementById('badge-status').className = "ml-auto text-[9px] bg-green-500 text-white px-2 py-0.5 rounded-full font-bold shadow-[0_0_5px_#23a55a]";
+        document.getElementById('badge-status').innerText = "ONLINE";
 
-        if (myProfile.avatar) {
-          document.getElementById('avatar-img-preview').src = myProfile.avatar;
-          document.getElementById('avatar-img-preview').classList.remove('hidden');
-          document.getElementById('avatar-initial-container').classList.add('hidden');
-        } else {
-          document.getElementById('avatar-img-preview').classList.add('hidden');
-          document.getElementById('avatar-initial-container').classList.remove('hidden');
-          document.getElementById('avatar-initial').innerText = myProfile.name.charAt(0).toUpperCase();
-        }
-
-        // Iniciar mídia e conexões
-        await requestCameraAndMicrophone();
         activeStream = localStream;
-        addVideoStream('local-video', localStream, myProfile, true);
+        addVideoStream('local-video', localStream, { name: currentUser.displayName, avatar: currentUser.photoURL }, true);
         setupAudioVolumeDetection(localStream, 'local-video');
 
-        document.getElementById('join-modal').classList.add('hidden');
+        joinModal.classList.add('hidden');
 
         initPeerConnection();
-        initFirestoreChat(); // Inicia o listener de chat persistente!
+        initFirestoreServerChat();
 
       } catch (err) {
         console.error(err);
-        alert(err.message || "Erro ao conectar ao Firebase.");
+        alert(err.message || "Erro de conexão.");
       } finally {
         btnAction.disabled = false;
         btnAction.innerText = originalText;
       }
-    });
+    };
 
-    // =========================
-    // Câmera + microfone
-    // =========================
+    function initMqttSignalingOrTokenFromUrl() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const room = urlParams.get('room');
+      if (room) {
+        document.getElementById('input-room').value = room;
+        switchLayout('server');
+        joinModal.classList.remove('hidden');
+      }
+    }
+
     async function requestCameraAndMicrophone() {
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
           video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
           audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
         });
-        isVideoOff = false; isMuted = false;
-        updateMicButton(); updateCameraButton();
-      } catch (cameraError) {
-        console.warn('Câmera + microfone falharam:', cameraError);
+      } catch (e) {
+        console.warn('Falhou câmera + microfone:', e);
         localStream = await navigator.mediaDevices.getUserMedia({
           video: false,
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+          audio: { echoCancellation: true }
         });
         isVideoOff = true;
-        updateMicButton(); updateCameraButton();
-      }
-    }
-
-    async function enableCamera() {
-      if (!localStream) return;
-      const existingVideo = getCurrentVideoTrack();
-      if (existingVideo) {
-        existingVideo.enabled = true;
-        isVideoOff = false;
-        updateCameraButton();
-        return;
-      }
-      try {
-        const cameraStream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }, audio: false });
-        const newVideoTrack = cameraStream.getVideoTracks()[0];
-        if (!newVideoTrack) throw new Error('Nenhuma câmera encontrada.');
-        localStream.addTrack(newVideoTrack);
-        if (!isSharing) {
-          activeStream = localStream;
-          const localVideo = document.getElementById('video-local-video');
-          if (localVideo) {
-            localVideo.srcObject = localStream;
-            localVideo.classList.add('transform', 'scale-x-[-1]');
-          }
-          await replaceOutgoingTrack('video', newVideoTrack);
-        }
-        isVideoOff = false;
-        updateCameraButton();
-      } catch (err) {
-        console.error('Erro ao ligar câmera:', err);
-        alert('Não foi possível ligar a câmera.');
-      }
-    }
-
-    async function disableCamera() {
-      if (!localStream) return;
-      const track = getCurrentVideoTrack();
-      if (track) {
-        track.enabled = false;
-        isVideoOff = true;
         updateCameraButton();
       }
     }
 
-    // =========================
-    // PeerJS / WebRTC
-    // =========================
     function initPeerConnection() {
-      setStatus('CONECTANDO', 'yellow');
       peer = new Peer({
         debug: 1,
         config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] }
       });
       peer.on('open', (id) => {
         myPeerId = id;
-        setStatus('ONLINE', 'green');
-        initMqttSignaling(id); // Ainda usamos MQTT só para descobrir quem está na sala
+        initMqttSignaling(id);
       });
       peer.on('call', (call) => {
         if (calls[call.peer]) return;
-        const incomingProfile = call.metadata?.profile || { name: 'Amigo', avatar: null };
+        const incomingProfile = call.metadata?.profile || { name: 'Usuário', avatar: null };
         remoteProfiles[call.peer] = incomingProfile;
         calls[call.peer] = call;
         call.answer(activeStream || localStream);
-        call.on('stream', (remoteStream) => { addOrUpdateRemoteStream(call.peer, remoteStream, incomingProfile); });
+        call.on('stream', (remoteStream) => { addVideoStream(call.peer, remoteStream, incomingProfile, false); });
         call.on('close', () => { removeVideoStream(call.peer); });
-        call.on('error', (err) => { removeVideoStream(call.peer); });
       });
-      peer.on('error', (err) => {
-        console.error('PeerJS error:', err);
-        setStatus('ERRO P2P', 'red');
-      });
-      peer.on('disconnected', () => {
-        setStatus('RECONHECTANDO', 'yellow');
-        try { peer.reconnect(); } catch (e) {}
-      });
-      peer.on('close', () => { setStatus('OFFLINE', 'red'); });
     }
 
     function connectToPeer(remotePeerId, remoteProfile) {
       if (!peer || !activeStream || remotePeerId === myPeerId || calls[remotePeerId]) return;
-      
-      const call = peer.call(remotePeerId, activeStream, { metadata: { profile: myProfile } });
+      const call = peer.call(remotePeerId, activeStream, { metadata: { profile: { name: currentUser.displayName, avatar: currentUser.photoURL } } });
       if (!call) return;
-      
       calls[remotePeerId] = call;
-      call.on('stream', (remoteStream) => { addOrUpdateRemoteStream(remotePeerId, remoteStream, remoteProfile); });
+      call.on('stream', (remoteStream) => { addVideoStream(remotePeerId, remoteStream, remoteProfile, false); });
       call.on('close', () => { removeVideoStream(remotePeerId); });
-      call.on('error', (err) => { removeVideoStream(remotePeerId); });
     }
 
-    function reconnectAllPeers() {
-      const currentPeers = Object.keys(calls);
-      for (const peerId of currentPeers) {
-        removeVideoStream(peerId);
-        setTimeout(() => { connectToPeer(peerId, remoteProfiles[peerId]); }, 1500); 
-      }
-    }
-
-    // =========================
-    // MQTT (Apenas para Sinalização/Presença WebRTC)
-    // =========================
     function initMqttSignaling(myId) {
       const roomTopic = `iagocord/rooms/${currentRoomToken}`;
       try {
         mqttClient = mqtt.connect('wss://broker.emqx.io:8084/mqtt', {
-          clientId: 'iagocord_' + Math.random().toString(16).slice(2) + '_' + Date.now(),
-          clean: true, reconnectPeriod: 3000, connectTimeout: 10000, keepalive: 30
+          clientId: 'iagocord_' + Math.random().toString(16).slice(2),
+          clean: true
         });
-      } catch (err) {
-        setStatus('ERRO CHAT', 'red'); return;
-      }
+      } catch (err) { return; }
 
       mqttClient.on('connect', () => {
         mqttConnected = true;
-        setStatus('ONLINE', 'green');
-        mqttClient.subscribe(roomTopic, { qos: 0 }, (err) => {
-          if (!err) mqttClient.publish(roomTopic, JSON.stringify({ type: 'join', peerId: myId, profile: myProfile }));
+        mqttClient.subscribe(roomTopic, () => {
+          mqttClient.publish(roomTopic, JSON.stringify({ type: 'join', peerId: myId, profile: { name: currentUser.displayName, avatar: currentUser.photoURL } }));
         });
       });
-      mqttClient.on('reconnect', () => { mqttConnected = false; setStatus('RECONNECT CHAT', 'yellow'); });
-      mqttClient.on('offline', () => { mqttConnected = false; setStatus('CHAT OFFLINE', 'red'); });
-      
+
       mqttClient.on('message', (topic, message) => {
         try {
           const data = JSON.parse(message.toString());
@@ -708,94 +1408,76 @@
             if (isSharing) {
                mqttClient.publish(roomTopic, JSON.stringify({ type: 'screen-share-start', peerId: myPeerId }));
             }
-          }
-          else if (data.type === 'leave') {
+          } else if (data.type === 'leave') {
             removeVideoStream(data.peerId);
-            delete remoteProfiles[data.peerId];
             activeScreenShares.delete(data.peerId);
-          }
-          // Nota: O Chat foi removido do MQTT! Agora é Firebase puro.
-          else if (data.type === 'screen-share-start') {
+          } else if (data.type === 'screen-share-start') {
             activeScreenShares.add(data.peerId);
             const container = document.getElementById(`container-${data.peerId}`);
             if (container) {
               container.classList.add('video-pinned');
               updateGridLayout();
               const video = document.getElementById(`video-${data.peerId}`);
-              if (video) { video.classList.remove('object-cover'); video.classList.add('object-contain', 'bg-black'); }
+              if (video) { video.classList.replace('object-cover', 'object-contain'); video.classList.add('bg-black'); }
             }
-          }
-          else if (data.type === 'screen-share-stop') {
+          } else if (data.type === 'screen-share-stop') {
             activeScreenShares.delete(data.peerId);
             const container = document.getElementById(`container-${data.peerId}`);
             if (container) {
               container.classList.remove('video-pinned');
               updateGridLayout();
               const video = document.getElementById(`video-${data.peerId}`);
-              if (video) { video.classList.add('object-cover'); video.classList.remove('object-contain', 'bg-black'); }
+              if (video) { video.classList.replace('object-contain', 'object-cover'); video.classList.remove('bg-black'); }
             }
           }
-        } catch (err) {}
-      });
-
-      window.addEventListener('beforeunload', () => {
-        if (mqttClient && mqttConnected) {
-          mqttClient.publish(roomTopic, JSON.stringify({ type: 'leave', peerId: myId }));
-        }
+        } catch (e) {}
       });
     }
 
-    // =========================
-    // Firebase: Chat Persistente
-    // =========================
+    // ==============================================
+    // CHAT DO SERVIDOR DE VOZ (Firestore)
+    // ==============================================
     const chatInput = document.getElementById('chat-input');
     const chatMessages = document.getElementById('chat-messages');
 
-    function initFirestoreChat() {
+    function initFirestoreServerChat() {
       const messagesRef = collection(db, "rooms", currentRoomToken, "messages");
       const q = query(messagesRef, orderBy("timestamp", "asc"));
       
-      // Listener em tempo real do Firebase
       onSnapshot(q, (snapshot) => {
         snapshot.docChanges().forEach((change) => {
           if (change.type === "added") {
              const data = change.doc.data();
-             const isMe = data.peerId === myPeerId;
-             
-             // O Firebase as vezes envia timestamp null localmente antes de sincronizar, usar Date() fallback
+             const isMe = data.peerId === currentUser.uid;
              const timeDate = data.timestamp ? data.timestamp.toDate() : new Date();
              
-             appendChatMessage(data.profile, data.text, timeDate, isMe);
+             appendServerChatMessage(data.profile, data.text, timeDate, isMe);
           }
         });
       });
     }
 
-    function sendChatMessage() {
+    function sendServerChatMessage() {
       const text = chatInput.value.trim();
-      if (!text || !currentRoomToken || !myPeerId) return;
+      if (!text || !currentRoomToken) return;
 
       const messagesRef = collection(db, "rooms", currentRoomToken, "messages");
-      
       addDoc(messagesRef, {
          text: text,
-         peerId: myPeerId,
-         profile: myProfile,
-         timestamp: serverTimestamp() // Salva o tempo exato no servidor do Firebase
-      }).catch(err => {
-         console.error("Erro ao enviar mensagem para o Firebase:", err);
-         alert("Erro ao enviar mensagem.");
+         peerId: currentUser.uid,
+         profile: { name: currentUser.displayName, avatar: currentUser.photoURL },
+         timestamp: serverTimestamp()
       });
 
       chatInput.value = '';
     }
 
-    document.getElementById('btn-send-msg').addEventListener('click', sendChatMessage);
-    chatInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') { e.preventDefault(); sendChatMessage(); }
-    });
+    document.getElementById('btn-send-msg').onclick = sendServerChatMessage;
+    chatInput.onkeypress = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); sendServerChatMessage(); }
+    };
 
-    function appendChatMessage(profile, text, dateObj, isMe) {
+    function appendServerChatMessage(profile, text, dateObj, isMe) {
       const msgDiv = document.createElement('div');
       msgDiv.className = 'flex gap-3 hover:bg-[#35373c] group transition-colors rounded-xl p-2 -mx-2';
       
@@ -804,8 +1486,8 @@
       const safeText = escapeHtml(text || '');
 
       const avatarHtml = avatar
-        ? `<img src="${avatar}" class="w-10 h-10 rounded-full mt-0.5 object-cover flex-shrink-0 shadow-sm border border-[#1e1f22]" />`
-        : `<div class="w-10 h-10 rounded-full mt-0.5 bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-white font-bold flex-shrink-0 shadow-sm border border-[#1e1f22]">${safeName.charAt(0).toUpperCase()}</div>`;
+        ? `<img src="${avatar}" class="w-10 h-10 rounded-full mt-0.5 object-cover flex-shrink-0 border border-[#1e1f22]" />`
+        : `<div class="w-10 h-10 rounded-full mt-0.5 bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-white font-bold flex-shrink-0 border border-[#1e1f22]">${safeName.charAt(0).toUpperCase()}</div>`;
 
       const time = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
       const formattedText = safeText.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-[#00a8fc] hover:underline">$1</a>');
@@ -823,23 +1505,11 @@
 
       chatMessages.appendChild(msgDiv);
       chatMessages.scrollTop = chatMessages.scrollHeight;
-
-      if (!isMe && !isChatOpen) {
-        const btn = document.getElementById('btn-toggle-chat');
-        btn.classList.add('bg-[#5865f2]', 'animate-pulse');
-        setTimeout(() => { btn.classList.remove('bg-[#5865f2]', 'animate-pulse'); }, 3000);
-      }
     }
 
-
-    // =========================
-    // Vídeos UI
-    // =========================
-    function addOrUpdateRemoteStream(id, stream, profile) {
-      addVideoStream(id, stream, profile, false);
-      setupAudioVolumeDetection(stream, id);
-    }
-
+    // ==============================================
+    // VÍDEOS E OUTROS CONTROLES WEBRTC
+    // ==============================================
     function addVideoStream(id, stream, profile, isLocal) {
       let card = document.getElementById(`container-${id}`);
 
@@ -850,7 +1520,7 @@
 
         const video = document.createElement('video');
         video.id = `video-${id}`;
-        video.autoplay = true; video.playsInline = true; video.controls = false;
+        video.autoplay = true; video.playsInline = true;
         if (isLocal) video.muted = true;
         video.srcObject = stream;
         video.className = `w-full h-full object-cover ${isLocal && !isSharing ? 'transform scale-x-[-1]' : ''}`;
@@ -858,73 +1528,45 @@
         if (activeScreenShares.has(id)) {
            card.classList.add('video-pinned');
            updateGridLayout();
-           video.classList.remove('object-cover');
-           video.classList.add('object-contain', 'bg-black');
+           video.classList.replace('object-cover', 'object-contain');
+           video.classList.add('bg-black');
         }
 
         video.onloadedmetadata = () => { video.play().catch(() => {}); };
 
         const overlay = document.createElement('div');
-        overlay.className = 'absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90 z-10 transition-opacity duration-300';
+        overlay.className = 'absolute inset-0 pointer-events-none flex flex-col justify-between p-3 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-90 z-10';
 
         const tag = document.createElement('div');
         tag.className = 'absolute bottom-3 left-3 bg-black/60 backdrop-blur-md pr-4 pl-1.5 py-1.5 rounded-full text-xs font-bold text-white flex items-center gap-2.5 pointer-events-auto border border-white/10';
 
         const safeName = escapeHtml(profile?.name || 'Amigo');
         const avatarHtml = profile?.avatar
-          ? `<img src="${escapeAttribute(profile.avatar)}" class="w-7 h-7 rounded-full object-cover border-2 border-[#5865f2]" />`
-          : `<div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#5865f2] to-[#3f49b5] flex items-center justify-center text-[11px] shadow-inner">${safeName.charAt(0).toUpperCase()}</div>`;
+          ? `<img src="${escapeAttribute(profile.avatar)}" class="w-7 h-7 rounded-full object-cover border border-[#5865f2]" />`
+          : `<div class="w-7 h-7 rounded-full bg-[#5865f2] flex items-center justify-center text-[10px] shadow-inner">${safeName.charAt(0).toUpperCase()}</div>`;
 
-        tag.innerHTML = `${avatarHtml}<span class="truncate max-w-[120px] drop-shadow-md">${safeName} ${isLocal ? '(Você)' : ''}</span>`;
+        tag.innerHTML = `${avatarHtml}<span class="truncate max-w-[120px]">${safeName} ${isLocal ? '(Você)' : ''}</span>`;
 
         const topActions = document.createElement('div');
         topActions.className = 'absolute top-3 right-3 flex items-center gap-2 pointer-events-auto opacity-0 group-hover:opacity-100 transition-all';
 
         const btnPin = document.createElement('button');
-        btnPin.className = 'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
-        btnPin.title = 'Destacar na Grade';
+        btnPin.className = 'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all border border-white/10';
         btnPin.innerHTML = `<i data-lucide="maximize-2" class="w-4 h-4"></i>`;
         btnPin.onclick = () => { card.classList.toggle('video-pinned'); updateGridLayout(); };
         topActions.appendChild(btnPin);
 
         const btnFullscreen = document.createElement('button');
-        btnFullscreen.className = 'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
-        btnFullscreen.title = 'Focar (Tela Cheia do Monitor)';
+        btnFullscreen.className = 'p-2 bg-black/50 hover:bg-[#5865f2] rounded-xl text-white transition-all border border-white/10';
         btnFullscreen.innerHTML = `<i data-lucide="monitor" class="w-4 h-4"></i>`;
         btnFullscreen.onclick = () => {
           if (!document.fullscreenElement) {
-            if (card.requestFullscreen) { card.requestFullscreen().catch(err => console.error(err)); } 
-            else if (card.webkitRequestFullscreen) { card.webkitRequestFullscreen(); }
+             card.requestFullscreen().catch(err => console.error(err));
           } else {
-            if (document.exitFullscreen) { document.exitFullscreen(); }
+             document.exitFullscreen();
           }
         };
         topActions.appendChild(btnFullscreen);
-
-        if (!isLocal) {
-          const volumeContainer = document.createElement('div');
-          volumeContainer.className = 'flex items-center gap-1.5 bg-black/60 px-2 py-1.5 rounded-xl border border-white/10 backdrop-blur-md';
-          volumeContainer.innerHTML = `
-            <i data-lucide="volume-2" class="w-3.5 h-3.5 text-gray-300"></i>
-            <input type="range" min="0" max="1" step="0.05" value="1"
-              class="w-16 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-[#5865f2]" />
-          `;
-          volumeContainer.querySelector('input').oninput = (e) => { video.volume = parseFloat(e.target.value); };
-          topActions.appendChild(volumeContainer);
-
-          const btnMuteRemote = document.createElement('button');
-          btnMuteRemote.className = 'p-2 bg-black/50 hover:bg-[#da373a] rounded-xl text-white transition-all backdrop-blur-md border border-white/10';
-          btnMuteRemote.title = 'Mutar participante';
-          btnMuteRemote.innerHTML = `<i data-lucide="volume-x" class="w-4 h-4"></i>`;
-          let isUserMutedLocally = false;
-          btnMuteRemote.onclick = () => {
-            isUserMutedLocally = !isUserMutedLocally;
-            video.muted = isUserMutedLocally;
-            btnMuteRemote.classList.toggle('bg-[#da373a]', isUserMutedLocally);
-            btnMuteRemote.classList.toggle('bg-black/50', !isUserMutedLocally);
-          };
-          topActions.appendChild(btnMuteRemote);
-        }
 
         overlay.appendChild(topActions);
         overlay.appendChild(tag);
@@ -954,263 +1596,123 @@
       if (calls[id]) { try { calls[id].close(); } catch (e) {} delete calls[id]; }
     }
 
-    // =========================
-    // Troca de tracks WebRTC
-    // =========================
+    function updateGridLayout() {
+      const grid = document.getElementById('videos-grid');
+      const hasPinned = grid.querySelector('.video-pinned');
+      if (hasPinned) { grid.classList.add('has-pinned'); } else { grid.classList.remove('has-pinned'); }
+    }
+
     async function replaceOutgoingTrack(kind, newTrack) {
-      let requiresReconnect = false;
       for (const id in calls) {
         const call = calls[id];
         try {
           const pc = call.peerConnection;
           if (!pc) continue;
           const sender = pc.getSenders().find(s => s.track && s.track.kind === kind);
-          if (sender) {
-            if (newTrack) { await sender.replaceTrack(newTrack); }
-          } else {
-             if (newTrack) requiresReconnect = true;
-          }
+          if (sender && newTrack) { await sender.replaceTrack(newTrack); }
         } catch (err) {}
       }
-      if (requiresReconnect) reconnectAllPeers();
     }
 
-    // =========================
-    // Microfone
-    // =========================
-    document.getElementById('ctrl-mic').addEventListener('click', () => {
-      if (!localStream) return;
-      const audioTrack = getCurrentAudioTrack();
-      if (!audioTrack) { alert('Nenhum microfone está disponível.'); return; }
-      isMuted = !isMuted;
-      audioTrack.enabled = !isMuted;
-      updateMicButton();
-    });
-
-    function updateMicButton() {
-      const btn = document.getElementById('ctrl-mic');
-      const icon = document.getElementById('main-mic-icon');
-      if (isMuted) {
-        btn.classList.add('bg-[#da373a]', 'hover:bg-[#c92b2d]'); btn.classList.remove('bg-[#2b2d31]', 'hover:bg-[#35373c]');
-        icon.setAttribute('data-lucide', 'mic-off');
-      } else {
-        btn.classList.remove('bg-[#da373a]', 'hover:bg-[#c92b2d]'); btn.classList.add('bg-[#2b2d31]', 'hover:bg-[#35373c]');
-        icon.setAttribute('data-lucide', 'mic');
-      }
-      lucide.createIcons();
-    }
-
-    // =========================
-    // Câmera
-    // =========================
-    document.getElementById('ctrl-cam').addEventListener('click', async () => {
-      if (!localStream) return;
-      if (isSharing) { alert('Pare o compartilhamento de tela antes de alterar a câmera.'); return; }
-      if (isVideoOff || !getCurrentVideoTrack()) { await enableCamera(); } else { await disableCamera(); }
-    });
-
-    function updateCameraButton() {
-      const btn = document.getElementById('ctrl-cam');
-      const icon = document.getElementById('main-video-icon');
-      if (isVideoOff || !getCurrentVideoTrack()) {
-        btn.classList.add('bg-[#da373a]', 'hover:bg-[#c92b2d]'); btn.classList.remove('bg-[#2b2d31]', 'hover:bg-[#35373c]');
-        icon.setAttribute('data-lucide', 'video-off');
-      } else {
-        btn.classList.remove('bg-[#da373a]', 'hover:bg-[#c92b2d]'); btn.classList.add('bg-[#2b2d31]', 'hover:bg-[#35373c]');
-        icon.setAttribute('data-lucide', 'video');
-      }
-      lucide.createIcons();
-    }
-
-    // =========================
-    // Compartilhamento de tela
-    // =========================
-    async function startScreenShare(gamerMode = false) {
-      if (!localStream) { alert('Entre na sala primeiro.'); return; }
-      if (isSharing) { stopScreenShare(); return; }
-
-      try {
-        const displayMediaOptions = gamerMode
-          ? { video: { frameRate: { ideal: 60, max: 60 }, displaySurface: 'monitor' }, audio: true }
-          : { video: true, audio: true };
-
-        screenStream = await navigator.mediaDevices.getDisplayMedia(displayMediaOptions);
-        const screenVideoTrack = screenStream.getVideoTracks()[0];
-        if (!screenVideoTrack) throw new Error('O navegador não forneceu a tela.');
-
-        const screenAudioTrack = screenStream.getAudioTracks()[0];
-        const micTrack = getCurrentAudioTrack();
-        const tracksToSend = [screenVideoTrack];
-
-        if (screenAudioTrack) tracksToSend.push(screenAudioTrack);
-        else if (micTrack) tracksToSend.push(micTrack);
-
-        const mixedStream = new MediaStream(tracksToSend);
-        activeStream = mixedStream;
-        isSharing = true;
-
-        const myVideo = document.getElementById('video-local-video');
-        const myContainer = document.getElementById('container-local-video');
-
-        if (myVideo) {
-          myVideo.srcObject = mixedStream;
-          myVideo.classList.remove('transform', 'scale-x-[-1]', 'object-cover');
-          myVideo.classList.add('object-contain', 'bg-black');
-          myVideo.play().catch(() => {});
-        }
-        
-        if (myContainer) { myContainer.classList.add('video-pinned'); updateGridLayout(); }
-
-        await replaceOutgoingTrack('video', screenVideoTrack);
-        await replaceOutgoingTrack('audio', screenAudioTrack || micTrack);
-        updateScreenButtons(gamerMode);
-        
-        if (mqttClient && mqttConnected) {
-          mqttClient.publish(`iagocord/rooms/${currentRoomToken}`, JSON.stringify({ type: 'screen-share-start', peerId: myPeerId }));
-        }
-
-        screenVideoTrack.onended = () => { if (isSharing) stopScreenShare(); };
-
-      } catch (err) {
-        if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-      }
-    }
-
-    async function stopScreenShare() {
-      if (!isSharing || !localStream) return;
-
-      const cameraTrack = getCurrentVideoTrack();
-      const micTrack = getCurrentAudioTrack();
-      activeStream = localStream;
-      isSharing = false;
-
-      if (cameraTrack) await replaceOutgoingTrack('video', cameraTrack);
-      if (micTrack) await replaceOutgoingTrack('audio', micTrack);
-
-      const myVideo = document.getElementById('video-local-video');
-      const myContainer = document.getElementById('container-local-video');
-
-      if (myVideo) {
-        myVideo.srcObject = localStream;
-        myVideo.classList.add('transform', 'scale-x-[-1]', 'object-cover');
-        myVideo.classList.remove('object-contain', 'bg-black');
-        myVideo.play().catch(() => {});
-      }
-      if (myContainer) { myContainer.classList.remove('video-pinned'); updateGridLayout(); }
-
-      if (screenStream) { screenStream.getTracks().forEach(t => t.stop()); screenStream = null; }
-
-      updateScreenButtons(false);
-      updateCameraButton();
-      
-      if (mqttClient && mqttConnected) {
-        mqttClient.publish(`iagocord/rooms/${currentRoomToken}`, JSON.stringify({ type: 'screen-share-stop', peerId: myPeerId }));
-      }
-    }
-
-    function updateScreenButtons(gamerMode) {
-      const screenBtn = document.getElementById('ctrl-screen');
-      const gamerBtn = document.getElementById('ctrl-gamer');
-
-      if (isSharing) {
-        screenBtn.classList.add('bg-[#23a55a]'); screenBtn.classList.remove('bg-[#2b2d31]');
-        if (gamerMode) gamerBtn.classList.add('ring-4', 'ring-[#b05cff]', 'bg-white', 'text-[#b05cff]');
-      } else {
-        screenBtn.classList.remove('bg-[#23a55a]'); screenBtn.classList.add('bg-[#2b2d31]');
-        gamerBtn.classList.remove('ring-4', 'ring-[#b05cff]', 'bg-white', 'text-[#b05cff]');
-      }
-    }
-
-    document.getElementById('ctrl-screen').addEventListener('click', () => { startScreenShare(false); });
-    document.getElementById('ctrl-gamer').addEventListener('click', () => { startScreenShare(true); });
-
-    // =========================
-    // Volume / speaking indicator
-    // =========================
     function setupAudioVolumeDetection(stream, id) {
       try {
         const audioTrack = stream.getAudioTracks()[0];
         if (!audioTrack) return;
         const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContext) return;
         const audioCtx = new AudioContext();
         const analyser = audioCtx.createAnalyser();
         analyser.fftSize = 256;
-        const mediaStream = new MediaStream([audioTrack]);
-        const source = audioCtx.createMediaStreamSource(mediaStream);
+        const source = audioCtx.createMediaStreamSource(new MediaStream([audioTrack]));
         source.connect(analyser);
         const dataArray = new Uint8Array(analyser.frequencyBinCount);
 
-        const checkVolume = () => {
+        const check = () => {
           const container = document.getElementById(`container-${id}`);
-          if (!container) { try { audioCtx.close(); } catch (e) {} return; }
+          if (!container) { audioCtx.close(); return; }
           analyser.getByteFrequencyData(dataArray);
           let sum = 0;
           for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
-          if (sum / dataArray.length > 22) container.classList.add('speaking');
+          if (sum / dataArray.length > 20) container.classList.add('speaking');
           else container.classList.remove('speaking');
-          requestAnimationFrame(checkVolume);
+          requestAnimationFrame(check);
         };
-        checkVolume();
-      } catch (err) {}
+        check();
+      } catch (e) {}
     }
 
-    // =========================
-    // Copiar convite (Atualizado para Token)
-    // =========================
-    document.getElementById('btn-copy-link').addEventListener('click', async () => {
-        if (!currentRoomToken) {
-           alert("Você precisa estar em um servidor para convidar.");
-           return;
-        }
+    // Botões Call
+    document.getElementById('ctrl-mic').onclick = () => {
+      if (!localStream) return;
+      const t = localStream.getAudioTracks()[0];
+      if (t) {
+        isMuted = !isMuted;
+        t.enabled = !isMuted;
+        updateMicButton();
+      }
+    };
+    function updateMicButton() {
+      const btn = document.getElementById('ctrl-mic');
+      const icon = document.getElementById('main-mic-icon');
+      if (isMuted) {
+        btn.classList.add('bg-[#da373a]'); icon.setAttribute('data-lucide', 'mic-off');
+      } else {
+        btn.classList.remove('bg-[#da373a]'); icon.setAttribute('data-lucide', 'mic');
+      }
+      lucide.createIcons();
+    }
 
-        const link = `${window.location.origin}${window.location.pathname}?room=${encodeURIComponent(currentRoomToken)}`;
-        const msg = `Vem pro meu servidor no iagocord!\n\nNome: ${currentRoomName}\nToken: ${currentRoomToken}\n\nLink direto:\n${link}`;
+    document.getElementById('ctrl-cam').onclick = async () => {
+      if (!localStream) return;
+      const t = localStream.getVideoTracks()[0];
+      if (t) {
+        isVideoOff = !isVideoOff;
+        t.enabled = !isVideoOff;
+        updateCameraButton();
+      }
+    };
+    function updateCameraButton() {
+      const btn = document.getElementById('ctrl-cam');
+      const icon = document.getElementById('main-video-icon');
+      if (isVideoOff) {
+        btn.classList.add('bg-[#da373a]'); icon.setAttribute('data-lucide', 'video-off');
+      } else {
+        btn.classList.remove('bg-[#da373a]'); icon.setAttribute('data-lucide', 'video');
+      }
+      lucide.createIcons();
+    }
 
-        try {
-          await navigator.clipboard.writeText(msg);
-        } catch (err) {
-          const temp = document.createElement('textarea');
-          temp.value = msg;
-          document.body.appendChild(temp); temp.select();
-          try { document.execCommand('copy'); } catch (e) {} temp.remove();
-        }
-
-        const span = document.querySelector('#btn-copy-link span');
-        const icon = document.querySelector('#btn-copy-link i');
-
-        if (span) {
-          const originalText = span.innerText;
-          span.innerText = 'Copiado!';
-          if (icon) { icon.setAttribute('data-lucide', 'check'); lucide.createIcons(); }
-          setTimeout(() => {
-            span.innerText = originalText;
-            if (icon) { icon.setAttribute('data-lucide', 'user-plus'); lucide.createIcons(); }
-          }, 3000);
-        }
-      });
-
-    // =========================
-    // Sair
-    // =========================
-    document.getElementById('ctrl-leave').addEventListener('click', () => {
-        if (!confirm('Deseja realmente sair da call?')) return;
-        try {
-          if (localStream) localStream.getTracks().forEach(t => t.stop());
-          if (screenStream) screenStream.getTracks().forEach(t => t.stop());
-          for (const id in calls) { try { calls[id].close(); } catch (e) {} }
-          if (mqttClient && mqttConnected && peer) {
-            mqttClient.publish(`iagocord/rooms/${currentRoomToken}`, JSON.stringify({ type: 'leave', peerId: peer.id }));
-            mqttClient.end();
-          }
-          if (peer) peer.destroy();
-        } catch (e) {}
+    document.getElementById('ctrl-leave').onclick = () => {
+      if (confirm('Deseja sair da chamada?')) {
         location.reload();
-      });
+      }
+    };
 
-    // =========================
-    // Segurança básica para texto
-    // =========================
+    // Chat lateral do servidor
+    const chatPanel = document.getElementById('chat-panel');
+    let isChatOpen = false;
+    document.getElementById('btn-toggle-chat').onclick = () => {
+      isChatOpen = !isChatOpen;
+      chatPanel.classList.toggle('hidden', !isChatOpen);
+    };
+    document.getElementById('btn-close-chat').onclick = () => {
+      isChatOpen = false;
+      chatPanel.classList.add('hidden');
+    };
+
+    // Copiar convite
+    document.getElementById('btn-copy-link').onclick = async () => {
+      if (!currentRoomToken) return;
+      const link = `${window.location.origin}${window.location.pathname}?room=${currentRoomToken}`;
+      await navigator.clipboard.writeText(link);
+      alert('Convite copiado!');
+    };
+
+    // Re-inicia o loop do utilitário
+    document.getElementById('btn-reload').onclick = () => location.reload();
+
+    // ==============================================
+    // SEGURANÇA E AUXILIARES
+    // ==============================================
     function escapeHtml(value) {
       return String(value)
         .replace(/&/g, '&amp;')
@@ -1221,7 +1723,9 @@
     }
     function escapeAttribute(value) { return escapeHtml(value); }
 
-    console.log('%ciagocord carregado com Firebase.', 'color:#5865f2;font-weight:bold;');
+    // Inicialização da View Padrão
+    switchLayout('friends');
+    switchSubTab('online');
   </script>
 </body>
 </html>
